@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import async_session_factory
-from app.routers import agents, workflows
+from app.routers import agents, executions, workflows
 from app.seed import seed_templates
 from app.websocket import monitor
 
@@ -42,6 +42,7 @@ app.add_middleware(
 
 app.include_router(agents.router)
 app.include_router(workflows.router)
+app.include_router(executions.router)
 app.include_router(monitor.router)
 
 
