@@ -1,7 +1,3 @@
-import pytest
-
-
-@pytest.mark.asyncio
 async def test_create_agent(client):
     payload = {
         "name": "Test Coder",
@@ -22,7 +18,6 @@ async def test_create_agent(client):
     assert "id" in data
 
 
-@pytest.mark.asyncio
 async def test_create_agent_with_all_fields(client):
     payload = {
         "name": "Full Agent",
@@ -44,7 +39,6 @@ async def test_create_agent_with_all_fields(client):
     assert data["guardrails"]["cost_limit_usd"] == 1.0
 
 
-@pytest.mark.asyncio
 async def test_get_agent(client):
     # Create first
     payload = {
@@ -61,7 +55,6 @@ async def test_get_agent(client):
     assert response.json()["name"] == "Getter Agent"
 
 
-@pytest.mark.asyncio
 async def test_list_agents(client):
     # Create two agents
     for name in ["Agent A", "Agent B"]:
@@ -77,7 +70,6 @@ async def test_list_agents(client):
     assert len(agents) >= 2
 
 
-@pytest.mark.asyncio
 async def test_update_agent(client):
     # Create
     create_resp = await client.post("/api/v1/agents", json={
@@ -97,7 +89,6 @@ async def test_update_agent(client):
     assert response.json()["role"] == "new role"
 
 
-@pytest.mark.asyncio
 async def test_delete_agent(client):
     # Create
     create_resp = await client.post("/api/v1/agents", json={
@@ -116,7 +107,6 @@ async def test_delete_agent(client):
     assert get_resp.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_create_agent_validation_missing_name(client):
     payload = {
         "role": "test",
@@ -126,7 +116,6 @@ async def test_create_agent_validation_missing_name(client):
     assert response.status_code == 422
 
 
-@pytest.mark.asyncio
 async def test_get_nonexistent_agent(client):
     response = await client.get("/api/v1/agents/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
