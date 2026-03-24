@@ -10,6 +10,7 @@ services:
       - ./openclaw-data/workspace:/home/node/workspace
       - ./openclaw-entrypoint.sh:/openclaw-entrypoint.sh:ro
     entrypoint: ["/bin/sh", "/openclaw-entrypoint.sh"]
+    command: ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]
     env_file:
       - .env
     environment:

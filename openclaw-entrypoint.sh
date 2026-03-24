@@ -36,5 +36,5 @@ if (token) {
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 "
 
-# Hand off to the original CMD from the Docker image
-exec "$@"
+# Chain to the original entrypoint, which handles its own setup then execs the CMD
+exec docker-entrypoint.sh "$@"
