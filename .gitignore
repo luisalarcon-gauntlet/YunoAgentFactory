@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+
+# Environment
+.env
+.env.local
+
+# Docker
+openclaw-data/config/
+openclaw-data/workspace/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Database
+pgdata/
+
+# OS
+.DS_Store
+Thumbs.db
