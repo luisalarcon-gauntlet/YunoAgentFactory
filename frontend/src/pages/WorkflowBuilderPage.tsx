@@ -8,6 +8,11 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import WorkflowCanvas from "@/components/workflow/WorkflowCanvas";
+import AgentNode from "@/components/workflow/AgentNode";
+import ConditionEdge from "@/components/workflow/ConditionEdge";
+
+const nodeTypes = { agentNode: AgentNode };
+const edgeTypes = { conditionEdge: ConditionEdge };
 
 export default function WorkflowBuilderPage() {
   const { id } = useParams<{ id?: string }>();
@@ -16,7 +21,7 @@ export default function WorkflowBuilderPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [workflowName, setWorkflowName] = useState(id ? "Loading..." : "Untitled Workflow");
 
-  // Suppress unused vars - will be used in commits 31-33
+  // Will be used in commits 32-33
   void onNodesChange;
   void onEdgesChange;
   void selectedNode;
@@ -30,8 +35,9 @@ export default function WorkflowBuilderPage() {
     setSelectedNode(null);
   }, []);
 
-  const nodeTypes = useMemo(() => ({}), []);
-  const edgeTypes = useMemo(() => ({}), []);
+  // Stable references (defined outside component as constants)
+  const stableNodeTypes = useMemo(() => nodeTypes, []);
+  const stableEdgeTypes = useMemo(() => edgeTypes, []);
 
   return (
     <ReactFlowProvider>
@@ -64,8 +70,8 @@ export default function WorkflowBuilderPage() {
             edges={edges}
             setNodes={setNodes}
             setEdges={setEdges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
+            nodeTypes={stableNodeTypes}
+            edgeTypes={stableEdgeTypes}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
           />
