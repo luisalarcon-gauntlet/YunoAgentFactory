@@ -1,9 +1,26 @@
 import { useState } from "react";
 import AgentList from "@/components/agents/AgentList";
+import AgentForm from "@/components/agents/AgentForm";
 import type { Agent } from "@/lib/api";
 
 export default function AgentsPage() {
-  const [_editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleEdit = (agent: Agent) => {
+    setEditingAgent(agent);
+    setShowForm(true);
+  };
+
+  const handleCreate = () => {
+    setEditingAgent(null);
+    setShowForm(true);
+  };
+
+  const handleClose = () => {
+    setShowForm(false);
+    setEditingAgent(null);
+  };
 
   return (
     <div>
@@ -12,11 +29,17 @@ export default function AgentsPage() {
           <h2 className="text-xl font-semibold">Agents</h2>
           <p className="text-sm text-muted-foreground">Manage your AI agents</p>
         </div>
-        <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
+        <button
+          onClick={handleCreate}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
           Create Agent
         </button>
       </div>
-      <AgentList onEdit={setEditingAgent} />
+      <AgentList onEdit={handleEdit} />
+      {showForm && (
+        <AgentForm agent={editingAgent} onClose={handleClose} />
+      )}
     </div>
   );
 }
