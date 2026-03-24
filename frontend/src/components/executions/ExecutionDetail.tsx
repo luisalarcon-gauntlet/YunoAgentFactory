@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Execution } from "@/lib/api";
 import StepTimeline from "./StepTimeline";
+import MessageTrail from "./MessageTrail";
 import { cn } from "@/lib/utils";
 
 interface ExecutionDetailProps {
@@ -17,6 +19,8 @@ const statusBadge: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: "bg-zinc-500/15", text: "text-zinc-400" },
 };
 
+type Tab = "steps" | "messages";
+
 function formatDuration(start: string | null, end: string | null): string {
   if (!start) return "--";
   const s = new Date(start).getTime();
@@ -28,10 +32,13 @@ function formatDuration(start: string | null, end: string | null): string {
 }
 
 export default function ExecutionDetail({ execution, onClose }: ExecutionDetailProps) {
+  const [activeTab, setActiveTab] = useState<Tab>("steps");
+  const isLive = execution.status === "running";
+
   const { data: steps, isLoading: stepsLoading } = useQuery({
     queryKey: ["execution-steps", execution.id],
     queryFn: () => api.executions.steps(execution.id),
-    refetchInterval: execution.status === "running" ? 2000 : false,
+    refetchInterval: isLive ? 2000 : false,
   });
 
   const badge = statusBadge[execution.status] ?? statusBadge.pending;
@@ -50,6 +57,12 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", badge.bg, badge.text)}>
               {execution.status}
             </span>
+            {isLive && (
+              <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            )}
           </div>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {execution.id.slice(0, 8)}... · {execution.trigger_type} · {formatDuration(execution.started_at, execution.completed_at)}
@@ -92,16 +105,49 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
         </div>
       )}
 
-      {/* Step timeline */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        {stepsLoading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 rounded-lg bg-muted/30 animate-pulse" />
-            ))}
+      {/* Tabs */}
+      <div className="flex gap-0 px-4 border-b border-border">
+        <button
+          onClick={() => setActiveTab("steps")}
+          className={cn(
+            "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+            activeTab === "steps"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Steps
+        </button>
+        <button
+          onClick={() => setActiveTab("messages")}
+          className={cn(
+            "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+            activeTab === "messages"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Messages
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === "steps" && (
+          <div className="px-4 py-3">
+            {stepsLoading ? (
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-16 rounded-lg bg-muted/30 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <StepTimeline steps={steps ?? []} />
+            )}
           </div>
-        ) : (
-          <StepTimeline steps={steps ?? []} />
+        )}
+        {activeTab === "messages" && (
+          <MessageTrail executionId={execution.id} isLive={isLive} />
         )}
       </div>
     </div>
