@@ -60,7 +60,7 @@ services:
     container_name: platform-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3001}:3000"
     environment:
       VITE_API_URL: http://${HOST_IP:-localhost}:8000
       VITE_WS_URL: ws://${HOST_IP:-localhost}:8000
