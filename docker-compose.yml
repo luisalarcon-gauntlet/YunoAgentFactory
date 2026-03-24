@@ -21,7 +21,7 @@ services:
     container_name: platform-db
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5434}:5432"
     environment:
       POSTGRES_DB: agentplatform
       POSTGRES_USER: platform
