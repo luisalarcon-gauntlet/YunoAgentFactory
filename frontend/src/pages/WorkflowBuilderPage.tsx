@@ -1,5 +1,5 @@
-import { useCallback, useState, useMemo, useRef, type DragEvent } from "react";
-import { useParams } from "react-router-dom";
+import { useCallback, useState, useMemo, useRef, useEffect, type DragEvent } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   useNodesState,
   useEdgesState,
@@ -8,12 +8,13 @@ import {
   type Edge,
   ReactFlowProvider,
 } from "@xyflow/react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import WorkflowCanvas from "@/components/workflow/WorkflowCanvas";
 import AgentNode from "@/components/workflow/AgentNode";
 import ConditionEdge from "@/components/workflow/ConditionEdge";
 import AgentPalette from "@/components/workflow/AgentPalette";
 import NodeConfigPanel from "@/components/workflow/NodeConfigPanel";
-import type { Agent } from "@/lib/api";
+import { api, type Agent, type WorkflowGraph } from "@/lib/api";
 import type { AgentNodeData } from "@/components/workflow/AgentNode";
 
 const nodeTypes = { agentNode: AgentNode };
@@ -24,18 +25,124 @@ function getNextNodeId() {
   return `node-${++nodeIdCounter}`;
 }
 
+function serializeGraph(nodes: Node[], edges: Edge[]): WorkflowGraph {
+  return {
+    nodes: nodes.map((n) => ({
+      id: n.id,
+      type: n.type ?? "agentNode",
+      position: n.position,
+      data: n.data as Record<string, unknown>,
+    })),
+    edges: edges.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      type: e.type,
+      data: e.data as Record<string, unknown>,
+    })),
+  };
+}
+
 function WorkflowBuilderInner() {
   const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [workflowName, setWorkflowName] = useState(id ? "Loading..." : "Untitled Workflow");
+  const [workflowName, setWorkflowName] = useState("Untitled Workflow");
+  const [workflowDesc, setWorkflowDesc] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
-  // Will be used in commit 33
-  void id;
+  // Load existing workflow
+  const { data: workflow } = useQuery({
+    queryKey: ["workflow", id],
+    queryFn: () => api.workflows.get(id!),
+    enabled: !!id,
+  });
+
+  // Apply loaded workflow to canvas
+  useEffect(() => {
+    if (!workflow) return;
+    setWorkflowName(workflow.name);
+    setWorkflowDesc(workflow.description ?? "");
+    if (workflow.graph?.nodes) {
+      const loaded = workflow.graph.nodes.map((n) => ({
+        ...n,
+        data: n.data as AgentNodeData,
+      }));
+      setNodes(loaded);
+      // Track highest node id
+      loaded.forEach((n) => {
+        const match = n.id.match(/node-(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num >= nodeIdCounter) nodeIdCounter = num;
+        }
+      });
+    }
+    if (workflow.graph?.edges) {
+      setEdges(
+        workflow.graph.edges.map((e) => ({
+          ...e,
+          animated: true,
+        }))
+      );
+    }
+  }, [workflow, setNodes, setEdges]);
+
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const graph = serializeGraph(nodes, edges);
+      if (id) {
+        return api.workflows.update(id, { name: workflowName, description: workflowDesc || undefined, graph });
+      }
+      return api.workflows.create({ name: workflowName, description: workflowDesc || undefined, graph });
+    },
+    onSuccess: (result) => {
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+      if (!id && result) {
+        navigate(`/workflows/${result.id}`, { replace: true });
+      }
+    },
+    onError: () => {
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    },
+  });
+
+  // Run mutation
+  const runMutation = useMutation({
+    mutationFn: async () => {
+      // Save first if needed
+      let workflowId = id;
+      if (!workflowId) {
+        const graph = serializeGraph(nodes, edges);
+        const created = await api.workflows.create({ name: workflowName, description: workflowDesc || undefined, graph });
+        workflowId = created.id;
+        navigate(`/workflows/${created.id}`, { replace: true });
+      }
+      return api.executions.run(workflowId);
+    },
+    onSuccess: (execution) => {
+      if (execution) {
+        navigate(`/runs?execution=${execution.id}`);
+      }
+    },
+  });
+
+  const handleSave = useCallback(() => {
+    setSaveStatus("saving");
+    saveMutation.mutate();
+  }, [saveMutation]);
+
+  const handleRun = useCallback(() => {
+    runMutation.mutate();
+  }, [runMutation]);
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -121,6 +228,8 @@ function WorkflowBuilderInner() {
   const stableNodeTypes = useMemo(() => nodeTypes, []);
   const stableEdgeTypes = useMemo(() => edgeTypes, []);
 
+  const saveLabel = saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Error" : "Save";
+
   return (
     <div className="flex flex-col h-[calc(100vh-0px)] -m-6">
       {/* Top bar */}
@@ -133,19 +242,31 @@ function WorkflowBuilderInner() {
             className="bg-transparent text-sm font-semibold border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-64"
             placeholder="Workflow name"
           />
+          <input
+            type="text"
+            value={workflowDesc}
+            onChange={(e) => setWorkflowDesc(e.target.value)}
+            className="bg-transparent text-xs text-muted-foreground border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-48"
+            placeholder="Description (optional)"
+          />
           <span className="text-xs text-muted-foreground">
             {nodes.length} node{nodes.length !== 1 ? "s" : ""} · {edges.length} edge{edges.length !== 1 ? "s" : ""}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors">
-            Save
+          <button
+            onClick={handleSave}
+            disabled={saveMutation.isPending}
+            className="px-3 py-1.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+          >
+            {saveLabel}
           </button>
           <button
-            disabled={nodes.length === 0}
+            onClick={handleRun}
+            disabled={nodes.length === 0 || runMutation.isPending}
             className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Run
+            {runMutation.isPending ? "Starting..." : "Run"}
           </button>
         </div>
       </div>
