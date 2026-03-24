@@ -43,15 +43,16 @@ export default function WorkflowCanvas({
   initialEdges,
   nodeTypes,
   edgeTypes,
+  onNodesChange: externalOnNodesChange,
+  onEdgesChange: externalOnEdgesChange,
   onNodeClick,
   onPaneClick,
   readOnly = false,
   nodes: controlledNodes,
   edges: controlledEdges,
-  setNodes: controlledSetNodes,
   setEdges: controlledSetEdges,
 }: WorkflowCanvasProps) {
-  const [internalNodes, setInternalNodes, onInternalNodesChange] = useNodesState(
+  const [internalNodes, , onInternalNodesChange] = useNodesState(
     initialNodes ?? defaultNodes
   );
   const [internalEdges, setInternalEdges, onInternalEdgesChange] = useEdgesState(
@@ -62,12 +63,8 @@ export default function WorkflowCanvas({
   const edges = controlledEdges ?? internalEdges;
   const setEdges = controlledSetEdges ?? setInternalEdges;
 
-  const onNodesChange: OnNodesChange = controlledNodes
-    ? () => {}
-    : onInternalNodesChange;
-  const onEdgesChange: OnEdgesChange = controlledEdges
-    ? () => {}
-    : onInternalEdgesChange;
+  const onNodesChange: OnNodesChange = externalOnNodesChange ?? onInternalNodesChange;
+  const onEdgesChange: OnEdgesChange = externalOnEdgesChange ?? onInternalEdgesChange;
 
   const onConnect: OnConnect = useCallback(
     (params) => {
@@ -85,10 +82,6 @@ export default function WorkflowCanvas({
     },
     [setEdges]
   );
-
-  // Suppress unused variable warnings - these are available for controlled mode
-  void setInternalNodes;
-  void controlledSetNodes;
 
   return (
     <div className="w-full h-full">
