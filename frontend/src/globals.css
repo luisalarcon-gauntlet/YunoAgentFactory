@@ -57,3 +57,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* React Flow dark theme overrides */
+.react-flow__node {
+  font-family: inherit;
+}
+
+.react-flow__edge-path {
+  stroke: hsl(220, 70%, 50%);
+  stroke-width: 2;
+}
+
+.react-flow__connection-line {
+  stroke: hsl(220, 70%, 50%);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: hsl(220, 70%, 50%);
+  border: 2px solid hsl(222.2, 84%, 4.9%);
+}
+
+.react-flow__handle:hover {
+  background: hsl(220, 70%, 65%);
+}
+
+.react-flow__minimap {
+  border-radius: 0.5rem;
+}
+
+.react-flow__panel {
+  margin: 8px;
+}
