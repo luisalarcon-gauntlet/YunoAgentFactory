@@ -14,6 +14,7 @@ import AgentNode from "@/components/workflow/AgentNode";
 import ConditionEdge from "@/components/workflow/ConditionEdge";
 import AgentPalette from "@/components/workflow/AgentPalette";
 import NodeConfigPanel from "@/components/workflow/NodeConfigPanel";
+import RunWorkflowModal from "@/components/workflow/RunWorkflowModal";
 import { api, type Agent, type WorkflowGraph } from "@/lib/api";
 import type { AgentNodeData } from "@/components/workflow/AgentNode";
 
@@ -55,6 +56,7 @@ function WorkflowBuilderInner() {
   const [workflowName, setWorkflowName] = useState("Untitled Workflow");
   const [workflowDesc, setWorkflowDesc] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [runModalOpen, setRunModalOpen] = useState(false);
 
   // Load existing workflow
   const { data: workflow } = useQuery({
@@ -117,7 +119,7 @@ function WorkflowBuilderInner() {
 
   // Run mutation
   const runMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input: string) => {
       // Save first if needed
       let workflowId = id;
       if (!workflowId) {
@@ -126,9 +128,10 @@ function WorkflowBuilderInner() {
         workflowId = created.id;
         navigate(`/workflows/${created.id}`, { replace: true });
       }
-      return api.executions.run(workflowId);
+      return api.executions.run(workflowId, input);
     },
     onSuccess: (execution) => {
+      setRunModalOpen(false);
       if (execution) {
         navigate(`/runs?execution=${execution.id}`);
       }
@@ -141,8 +144,15 @@ function WorkflowBuilderInner() {
   }, [saveMutation]);
 
   const handleRun = useCallback(() => {
-    runMutation.mutate();
-  }, [runMutation]);
+    setRunModalOpen(true);
+  }, []);
+
+  const handleRunSubmit = useCallback(
+    (input: string) => {
+      runMutation.mutate(input);
+    },
+    [runMutation]
+  );
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -309,6 +319,14 @@ function WorkflowBuilderInner() {
           />
         )}
       </div>
+
+      {/* Run workflow modal */}
+      <RunWorkflowModal
+        open={runModalOpen}
+        loading={runMutation.isPending}
+        onClose={() => setRunModalOpen(false)}
+        onRun={handleRunSubmit}
+      />
     </div>
   );
 }
