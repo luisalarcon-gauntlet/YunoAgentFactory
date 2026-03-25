@@ -43,6 +43,7 @@ app.add_middleware(
 app.include_router(agents.router)
 app.include_router(workflows.router)
 app.include_router(executions.router)
+app.include_router(executions.debug_router)
 app.include_router(monitor.router)
 
 

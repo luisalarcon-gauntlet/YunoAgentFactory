@@ -19,17 +19,35 @@ class OrchestrationEngine:
         self.openclaw = openclaw
         self.ws_manager = ws_manager
 
-    async def run_workflow(self, workflow_id: uuid.UUID, initial_input: str = "") -> uuid.UUID:
+    async def run_workflow(
+        self,
+        workflow_id: uuid.UUID,
+        initial_input: str = "",
+        execution_id: uuid.UUID | None = None,
+    ) -> uuid.UUID:
         workflow = await self.db.get(Workflow, workflow_id)
+        if not workflow:
+            raise ValueError(f"Workflow {workflow_id} not found")
+
         graph = workflow.graph
 
-        execution = WorkflowExecution(
-            workflow_id=workflow_id,
-            status="running",
-            iteration_count=0,
-            started_at=datetime.now(timezone.utc),
-        )
-        self.db.add(execution)
+        # Use existing execution record or create a new one
+        if execution_id:
+            execution = await self.db.get(WorkflowExecution, execution_id)
+            if not execution:
+                raise ValueError(f"Execution {execution_id} not found")
+            execution.status = "running"
+            execution.started_at = datetime.now(timezone.utc)
+            execution.iteration_count = 0
+        else:
+            execution = WorkflowExecution(
+                workflow_id=workflow_id,
+                status="running",
+                iteration_count=0,
+                started_at=datetime.now(timezone.utc),
+            )
+            self.db.add(execution)
+
         await self.db.flush()
         await self.db.refresh(execution)
 
@@ -41,18 +59,39 @@ class OrchestrationEngine:
 
         try:
             start_node_ids = self._find_start_nodes(graph)
+            if not start_node_ids:
+                raise ValueError("Workflow has no start nodes")
+
+            logger.info(
+                "Starting workflow %s execution %s with %d start node(s)",
+                workflow_id, execution.id, len(start_node_ids),
+            )
+
             queue: list[tuple[str, str]] = [(nid, initial_input) for nid in start_node_ids]
 
             while queue:
                 if execution.iteration_count >= workflow.max_iterations:
                     execution.status = "timed_out"
                     execution.error_message = f"Exceeded max iterations ({workflow.max_iterations})"
+                    logger.warning(
+                        "Execution %s exceeded max iterations (%d)",
+                        execution.id, workflow.max_iterations,
+                    )
                     break
 
                 current_node_id, input_data = queue.pop(0)
                 node = self._get_node(graph, current_node_id)
                 agent_id = node["data"]["agent_id"]
                 agent = await self.db.get(Agent, uuid.UUID(agent_id))
+
+                if not agent:
+                    execution.status = "failed"
+                    execution.error_message = f"Agent {agent_id} not found for node {current_node_id}"
+                    logger.error("Agent %s not found", agent_id)
+                    break
+
+                # Ensure agent has an OpenClaw session
+                await self._ensure_agent_session(agent)
 
                 step = await self._execute_agent_step(
                     execution=execution,
@@ -63,7 +102,11 @@ class OrchestrationEngine:
 
                 if step.status == "failed":
                     execution.status = "failed"
-                    execution.error_message = f"Agent '{agent.name}' failed at node {current_node_id}"
+                    execution.error_message = f"Agent '{agent.name}' failed at node {current_node_id}: {step.error_message}"
+                    logger.error(
+                        "Step failed for agent '%s' at node %s: %s",
+                        agent.name, current_node_id, step.error_message,
+                    )
                     break
 
                 await self._log_agent_message(
@@ -91,11 +134,15 @@ class OrchestrationEngine:
 
             if execution.status == "running":
                 execution.status = "completed"
+                logger.info(
+                    "Execution %s completed after %d iterations",
+                    execution.id, execution.iteration_count,
+                )
 
         except Exception as e:
             execution.status = "failed"
             execution.error_message = str(e)
-            logger.exception("Workflow execution failed")
+            logger.exception("Workflow execution %s failed", execution.id)
 
         execution.completed_at = datetime.now(timezone.utc)
         await self.db.commit()
@@ -107,6 +154,23 @@ class OrchestrationEngine:
         })
 
         return execution.id
+
+    async def _ensure_agent_session(self, agent: Agent) -> None:
+        """Ensure the agent has an OpenClaw session. Creates one if missing."""
+        if agent.openclaw_session_key:
+            return
+
+        workspace = agent.openclaw_workspace or agent.name.lower().replace(" ", "-")
+        logger.info("Agent '%s' has no session, creating one (workspace: %s)", agent.name, workspace)
+
+        try:
+            session_key = await self.openclaw.create_session(workspace)
+            agent.openclaw_session_key = session_key
+            await self.db.flush()
+            logger.info("Assigned session '%s' to agent '%s'", session_key, agent.name)
+        except Exception as e:
+            logger.error("Failed to create session for agent '%s': %s", agent.name, e)
+            raise RuntimeError(f"Cannot create OpenClaw session for agent '{agent.name}': {e}") from e
 
     async def _execute_agent_step(
         self, execution: WorkflowExecution, node: dict, agent: Agent, input_data: str
@@ -132,6 +196,11 @@ class OrchestrationEngine:
         try:
             prompt = self._build_agent_prompt(agent, node, input_data)
 
+            logger.info(
+                "Executing agent '%s' (session: %s) for node %s",
+                agent.name, agent.openclaw_session_key, node["id"],
+            )
+
             response = await self.openclaw.send_and_wait(
                 session_key=agent.openclaw_session_key,
                 message=prompt,
@@ -146,9 +215,11 @@ class OrchestrationEngine:
         except TimeoutError:
             step.status = "failed"
             step.error_message = "Agent response timed out"
+            logger.error("Agent '%s' timed out at node %s", agent.name, node["id"])
         except Exception as e:
             step.status = "failed"
             step.error_message = str(e)
+            logger.error("Agent '%s' failed at node %s: %s", agent.name, node["id"], e)
 
         step.completed_at = datetime.now(timezone.utc)
         if step.started_at:
