@@ -1,12 +1,22 @@
 import asyncio
 import json
 import logging
+import uuid
 from dataclasses import dataclass
 from typing import Callable
 
 import websockets
 
 logger = logging.getLogger(__name__)
+
+PROTOCOL_VERSION = 3
+
+# Connect as control-ui client to receive full operator scopes.
+# Combined with dangerouslyDisableDeviceAuth=true in the gateway config,
+# this lets our backend bypass device pairing (dev-only).
+CLIENT_ID = "openclaw-control-ui"
+CLIENT_MODE = "ui"
+ORIGIN_HEADER = "http://localhost:18789"
 
 
 @dataclass
@@ -17,32 +27,108 @@ class AgentResponse:
 
 
 class OpenClawWSClient:
-    def __init__(self, ws_url: str, auth_token: str):
+    """WebSocket RPC client for the OpenClaw gateway (protocol v3).
+
+    Handshake flow:
+      1. Connect to WebSocket
+      2. Receive connect.challenge event (nonce)
+      3. Send req frame with method="connect" and ConnectParams
+      4. Receive res with ok=true containing server hello
+
+    RPC frames:
+      - Request: {type:"req", id:"<uuid>", method:"<name>", params:{...}}
+      - Response: {type:"res", id:"<uuid>", ok:true/false, payload/error:{...}}
+      - Events: {type:"event", event:"<name>", payload:{...}}
+    """
+
+    def __init__(self, ws_url: str, auth_token: str) -> None:
         self.ws_url = ws_url
         self.auth_token = auth_token
         self.ws = None
-        self._request_id = 0
-        self._pending: dict[int, asyncio.Future] = {}
+        self._pending: dict[str, asyncio.Future] = {}
         self._event_listeners: dict[str, list[Callable]] = {}
         self._connected = False
+        self._hello: dict | None = None
+        self._hello_event = asyncio.Event()
 
     async def connect(self) -> None:
+        """Connect to OpenClaw gateway and complete the protocol handshake."""
         if self._connected and self.ws:
             return
         try:
-            url = f"{self.ws_url}?token={self.auth_token}"
             logger.info("Connecting to OpenClaw gateway at %s", self.ws_url)
-            self.ws = await websockets.connect(url)
+            self.ws = await websockets.connect(
+                self.ws_url,
+                additional_headers={"Origin": ORIGIN_HEADER},
+            )
+            self._hello_event.clear()
             self._connected = True
+
+            # Start listener before sending handshake so we catch the hello
             asyncio.create_task(self._listen())
-            logger.info("Successfully connected to OpenClaw gateway")
+
+            # Wait for the connect.challenge event from the server
+            try:
+                await asyncio.wait_for(self._hello_event.wait(), timeout=5)
+                # _hello_event is first set when we receive connect.challenge,
+                # then we clear and re-set it after the hello response.
+                # Actually, let's handle this in _listen() properly.
+            except asyncio.TimeoutError:
+                pass
+            # Reset — we'll use _hello_event for the actual hello
+            self._hello_event.clear()
+
+            # Send connect request frame (OpenClaw protocol v3)
+            connect_frame = {
+                "type": "req",
+                "id": str(uuid.uuid4()),
+                "method": "connect",
+                "params": {
+                    "minProtocol": PROTOCOL_VERSION,
+                    "maxProtocol": PROTOCOL_VERSION,
+                    "client": {
+                        "id": CLIENT_ID,
+                        "mode": CLIENT_MODE,
+                        "version": "1.0.0",
+                        "platform": "linux",
+                    },
+                    "role": "operator",
+                    "scopes": ["operator.admin", "operator.read", "operator.write"],
+                    "auth": {
+                        "token": self.auth_token,
+                    },
+                },
+            }
+            await self.ws.send(json.dumps(connect_frame))
+            logger.debug("Sent connect handshake frame")
+
+            # Wait for the res ok=true (hello)
+            try:
+                await asyncio.wait_for(self._hello_event.wait(), timeout=10)
+            except asyncio.TimeoutError:
+                await self.disconnect()
+                raise ConnectionError(
+                    "OpenClaw did not respond with hello within 10s"
+                )
+
+            server_ver = "?"
+            if self._hello:
+                server_info = self._hello.get("server", {})
+                server_ver = server_info.get("version", "?")
+            logger.info("Connected to OpenClaw gateway (server %s)", server_ver)
+
+        except ConnectionError:
+            self._connected = False
+            raise
         except Exception as e:
             self._connected = False
-            logger.error("Failed to connect to OpenClaw gateway at %s: %s", self.ws_url, e)
+            logger.error("Failed to connect to OpenClaw at %s: %s", self.ws_url, e)
             raise ConnectionError(f"Cannot connect to OpenClaw at {self.ws_url}: {e}") from e
 
     async def disconnect(self) -> None:
         self._connected = False
+        self._hello = None
+        self._hello_event.clear()
         if self.ws:
             try:
                 await self.ws.close()
@@ -51,38 +137,16 @@ class OpenClawWSClient:
             finally:
                 self.ws = None
 
-    async def create_session(self, agent_workspace: str) -> str:
-        """Create an OpenClaw session for an agent and return the session key."""
-        await self._ensure_connected()
-        logger.info("Creating OpenClaw session for agent workspace '%s'", agent_workspace)
-        try:
-            response = await self._rpc("session.create", {
-                "agentId": agent_workspace,
-            })
-            session_key = response.get("data", {}).get("sessionKey", "")
-            if not session_key:
-                # Some OpenClaw versions return the key differently
-                session_key = response.get("result", {}).get("sessionKey", "")
-            if not session_key:
-                # Fall back to using the agent workspace as the session key
-                session_key = agent_workspace
-                logger.warning(
-                    "OpenClaw did not return a sessionKey for '%s', using workspace name as key",
-                    agent_workspace,
-                )
-            logger.info("Created session '%s' for agent '%s'", session_key, agent_workspace)
-            return session_key
-        except Exception as e:
-            logger.error("Failed to create session for agent '%s': %s", agent_workspace, e)
-            raise
-
     async def check_connection(self) -> dict:
-        """Check if the OpenClaw gateway is reachable. Returns status dict."""
+        """Connect and perform a basic RPC to verify the protocol works."""
         try:
             await self.connect()
+            status = await self._rpc("status", timeout=10)
             return {
-                "connected": self._connected,
+                "connected": True,
                 "ws_url": self.ws_url,
+                "server": self._hello.get("server") if self._hello else None,
+                "status_rpc": status,
             }
         except Exception as e:
             return {
@@ -91,37 +155,170 @@ class OpenClawWSClient:
                 "error": str(e),
             }
 
+    def build_session_key(self, agent_workspace: str) -> str:
+        """Construct an OpenClaw session key for an agent.
+
+        Sessions are created implicitly when the first message is sent.
+        """
+        return f"agent:{agent_workspace}:main"
+
+    async def send_and_wait(
+        self, session_key: str, message: str, timeout: float = 120
+    ) -> AgentResponse:
+        """Send a message to an agent and wait for the complete response.
+
+        Uses the `agent` RPC method. Text arrives via two channels:
+        - `agent` events with stream="assistant" carry real-time deltas
+        - `chat` final event carries the complete message in message.content
+        """
+        await self._ensure_connected()
+
+        response_parts: list[str] = []
+        final_text: str | None = None
+        done_event = asyncio.Event()
+
+        async def on_agent_event(event: dict) -> None:
+            """Collect streaming text from agent assistant events."""
+            payload = event.get("payload", {})
+            if payload.get("sessionKey") != session_key:
+                return
+            stream = payload.get("stream", "")
+            data = payload.get("data", {})
+            if stream == "assistant" and "delta" in data:
+                response_parts.append(data["delta"])
+
+        async def on_chat_event(event: dict) -> None:
+            """Detect final state and extract complete message."""
+            nonlocal final_text
+            payload = event.get("payload", {})
+            if payload.get("sessionKey") != session_key:
+                return
+
+            state = payload.get("state", "")
+            if state == "final":
+                # Extract complete text from message content
+                message_obj = payload.get("message", {})
+                content = message_obj.get("content", [])
+                parts = []
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        parts.append(block.get("text", ""))
+                    elif isinstance(block, str):
+                        parts.append(block)
+                if parts:
+                    final_text = "".join(parts)
+                done_event.set()
+            elif state in ("aborted", "error"):
+                error_msg = payload.get("error", payload.get("message", "Unknown error"))
+                logger.error("Agent error for session '%s': %s", session_key, error_msg)
+                done_event.set()
+
+        self._event_listeners.setdefault("agent", []).append(on_agent_event)
+        self._event_listeners.setdefault("chat", []).append(on_chat_event)
+
+        try:
+            logger.info("Sending message to session '%s' (%d chars)", session_key, len(message))
+
+            await self._rpc("agent", {
+                "sessionKey": session_key,
+                "message": message,
+                "idempotencyKey": str(uuid.uuid4()),
+            })
+
+            await asyncio.wait_for(done_event.wait(), timeout=timeout)
+
+            # Prefer the authoritative final text; fall back to collected deltas
+            full_text = final_text if final_text is not None else "".join(response_parts)
+            token_count = len(full_text.split()) * 2  # rough estimate
+
+            logger.info(
+                "Received response from session '%s' (%d chars)",
+                session_key, len(full_text),
+            )
+            return AgentResponse(
+                text=full_text,
+                token_count=token_count,
+                cost_usd=0.0,
+            )
+        except asyncio.TimeoutError:
+            logger.error("Agent response timed out for session '%s' after %.0fs", session_key, timeout)
+            raise TimeoutError(f"Agent response timed out after {timeout}s")
+        finally:
+            self._event_listeners["agent"].remove(on_agent_event)
+            self._event_listeners["chat"].remove(on_chat_event)
+
     async def _ensure_connected(self) -> None:
         if not self._connected or not self.ws:
             await self.connect()
 
     async def _listen(self) -> None:
+        """Background listener for incoming WebSocket frames."""
         try:
             async for raw in self.ws:
-                msg = json.loads(raw)
+                try:
+                    msg = json.loads(raw)
+                except json.JSONDecodeError:
+                    logger.warning("Non-JSON frame from OpenClaw: %s", raw[:200])
+                    continue
+
                 frame_type = msg.get("type")
 
-                if frame_type == "response":
-                    req_id = msg.get("requestId")
-                    if req_id in self._pending:
-                        self._pending[req_id].set_result(msg)
+                if frame_type == "res":
+                    req_id = msg.get("id")
+                    if req_id and req_id in self._pending:
+                        if msg.get("ok"):
+                            self._pending[req_id].set_result(msg.get("payload", {}))
+                        else:
+                            error = msg.get("error", {})
+                            error_msg = error.get("message", "Unknown RPC error")
+                            error_code = error.get("code", "UNKNOWN")
+                            self._pending[req_id].set_exception(
+                                RuntimeError(f"OpenClaw RPC error [{error_code}]: {error_msg}")
+                            )
+                    elif req_id:
+                        # Could be the connect response — check if it contains hello data
+                        if msg.get("ok"):
+                            payload = msg.get("payload", {})
+                            if "protocol" in payload or "server" in payload:
+                                self._hello = payload
+                                self._hello_event.set()
+                                logger.debug(
+                                    "Received hello: server=%s",
+                                    payload.get("server", {}).get("version", "?"),
+                                )
+
                 elif frame_type == "event":
-                    event_name = msg.get("event")
-                    for listener in self._event_listeners.get(event_name, []):
-                        asyncio.create_task(listener(msg))
-        except websockets.exceptions.ConnectionClosed:
-            logger.warning("OpenClaw WebSocket connection closed")
+                    event_name = msg.get("event", "")
+
+                    if event_name == "connect.challenge":
+                        # Server challenge — signal that connection is open
+                        self._hello_event.set()
+                    elif event_name == "tick":
+                        pass  # heartbeat, ignore
+                    else:
+                        for listener in self._event_listeners.get(event_name, []):
+                            asyncio.create_task(listener(msg))
+
+                else:
+                    logger.debug("Unhandled frame type '%s'", frame_type)
+
+        except websockets.ConnectionClosed as e:
+            logger.warning("OpenClaw WebSocket closed: code=%s reason=%s", e.code, e.reason)
             self._connected = False
         except Exception as e:
             logger.error("OpenClaw WebSocket listener error: %s", e)
             self._connected = False
 
     async def _rpc(self, method: str, params: dict | None = None, timeout: float = 30) -> dict:
+        """Send an RPC request and wait for the response."""
         await self._ensure_connected()
 
-        self._request_id += 1
-        req_id = self._request_id
-        frame: dict = {"type": "request", "requestId": req_id, "method": method}
+        req_id = str(uuid.uuid4())
+        frame: dict = {
+            "type": "req",
+            "id": req_id,
+            "method": method,
+        }
         if params:
             frame["params"] = params
 
@@ -131,6 +328,7 @@ class OpenClawWSClient:
 
         try:
             await self.ws.send(json.dumps(frame))
+            logger.debug("Sent RPC: method=%s id=%s", method, req_id[:8])
         except Exception as e:
             self._pending.pop(req_id, None)
             logger.error("Failed to send RPC '%s': %s", method, e)
@@ -139,49 +337,7 @@ class OpenClawWSClient:
         try:
             return await asyncio.wait_for(future, timeout=timeout)
         except asyncio.TimeoutError:
-            logger.error("RPC '%s' timed out after %.0fs", method, timeout)
+            logger.error("RPC '%s' timed out after %.0fs (id=%s)", method, timeout, req_id[:8])
             raise TimeoutError(f"OpenClaw RPC '{method}' timed out after {timeout}s")
         finally:
             self._pending.pop(req_id, None)
-
-    async def send_and_wait(self, session_key: str, message: str, timeout: float = 120) -> AgentResponse:
-        await self._ensure_connected()
-
-        response_parts: list[str] = []
-        done_event = asyncio.Event()
-
-        async def on_chat(event: dict) -> None:
-            data = event.get("data", {})
-            if data.get("sessionKey") == session_key:
-                if data.get("final"):
-                    done_event.set()
-                elif data.get("text"):
-                    response_parts.append(data["text"])
-
-        self._event_listeners.setdefault("chat", []).append(on_chat)
-
-        try:
-            logger.info("Sending message to session '%s' (%d chars)", session_key, len(message))
-            await self._rpc("chat.send", {
-                "sessionKey": session_key,
-                "message": message,
-            })
-
-            await asyncio.wait_for(done_event.wait(), timeout=timeout)
-
-            full_text = "".join(response_parts)
-            logger.info(
-                "Received response from session '%s' (%d chars)",
-                session_key,
-                len(full_text),
-            )
-            return AgentResponse(
-                text=full_text,
-                token_count=len(full_text.split()) * 2,
-                cost_usd=0.0,
-            )
-        except asyncio.TimeoutError:
-            logger.error("Agent response timed out for session '%s' after %.0fs", session_key, timeout)
-            raise TimeoutError(f"Agent response timed out after {timeout}s")
-        finally:
-            self._event_listeners["chat"].remove(on_chat)

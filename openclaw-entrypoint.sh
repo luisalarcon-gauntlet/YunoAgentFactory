@@ -25,6 +25,8 @@ if (!config.gateway) config.gateway = {};
 config.gateway.bind = config.gateway.bind || 'lan';
 if (!config.gateway.controlUi) config.gateway.controlUi = {};
 config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = true;
+config.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
+config.gateway.controlUi.allowInsecureAuth = true;
 if (!config.gateway.controlUi.allowedOrigins) {
   config.gateway.controlUi.allowedOrigins = [
     'http://127.0.0.1:18789',

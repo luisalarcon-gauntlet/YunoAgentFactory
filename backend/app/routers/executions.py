@@ -242,10 +242,66 @@ async def cancel_execution(
 
 @debug_router.get("/openclaw-status")
 async def openclaw_status() -> dict:
-    """Check connectivity to the OpenClaw gateway."""
+    """Check connectivity to the OpenClaw gateway.
+
+    Performs full protocol handshake and a test RPC call.
+    """
     client = _get_openclaw_client()
     try:
         result = await client.check_connection()
         return result
     finally:
         await client.disconnect()
+
+
+@debug_router.get("/openclaw")
+async def openclaw_debug() -> dict:
+    """Detailed OpenClaw debug: handshake, RPC test, and session key format."""
+    client = _get_openclaw_client()
+    steps: list[dict] = []
+
+    try:
+        # Step 1: Connect and handshake
+        await client.connect()
+        steps.append({
+            "step": "handshake",
+            "ok": True,
+            "protocol": client._hello.get("protocol") if client._hello else None,
+            "server": client._hello.get("server") if client._hello else None,
+        })
+    except Exception as e:
+        steps.append({"step": "handshake", "ok": False, "error": str(e)})
+        return {"steps": steps, "overall": "failed"}
+
+    try:
+        # Step 2: Test read-only RPC
+        status = await client._rpc("status", timeout=10)
+        steps.append({"step": "rpc_status", "ok": True, "payload": status})
+    except Exception as e:
+        steps.append({"step": "rpc_status", "ok": False, "error": str(e)})
+
+    try:
+        # Step 3: List sessions
+        sessions = await client._rpc("sessions.list", timeout=10)
+        steps.append({"step": "rpc_sessions_list", "ok": True, "payload": sessions})
+    except Exception as e:
+        steps.append({"step": "rpc_sessions_list", "ok": False, "error": str(e)})
+
+    try:
+        # Step 4: List agents
+        agents = await client._rpc("agents.list", timeout=10)
+        steps.append({"step": "rpc_agents_list", "ok": True, "payload": agents})
+    except Exception as e:
+        steps.append({"step": "rpc_agents_list", "ok": False, "error": str(e)})
+
+    # Step 5: Show session key format
+    steps.append({
+        "step": "session_key_format",
+        "example": client.build_session_key("test-agent"),
+        "note": "Sessions are created implicitly on first message",
+    })
+
+    await client.disconnect()
+
+    overall = "ok" if all(s.get("ok", True) for s in steps) else "partial"
+    return {"steps": steps, "overall": overall}

@@ -50,6 +50,8 @@ def mock_openclaw():
     mock = AsyncMock()
     mock.connect = AsyncMock()
     mock.send_and_wait = AsyncMock()
+    # build_session_key is a sync method — use a regular side_effect
+    mock.build_session_key = lambda workspace: f"agent:{workspace}:main"
     return mock
 
 

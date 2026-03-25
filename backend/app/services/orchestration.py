@@ -156,21 +156,19 @@ class OrchestrationEngine:
         return execution.id
 
     async def _ensure_agent_session(self, agent: Agent) -> None:
-        """Ensure the agent has an OpenClaw session. Creates one if missing."""
+        """Ensure the agent has an OpenClaw session key assigned.
+
+        OpenClaw creates sessions implicitly when the first message is sent.
+        We just need to construct the session key in the correct format.
+        """
         if agent.openclaw_session_key:
             return
 
         workspace = agent.openclaw_workspace or agent.name.lower().replace(" ", "-")
-        logger.info("Agent '%s' has no session, creating one (workspace: %s)", agent.name, workspace)
-
-        try:
-            session_key = await self.openclaw.create_session(workspace)
-            agent.openclaw_session_key = session_key
-            await self.db.flush()
-            logger.info("Assigned session '%s' to agent '%s'", session_key, agent.name)
-        except Exception as e:
-            logger.error("Failed to create session for agent '%s': %s", agent.name, e)
-            raise RuntimeError(f"Cannot create OpenClaw session for agent '{agent.name}': {e}") from e
+        session_key = self.openclaw.build_session_key(workspace)
+        agent.openclaw_session_key = session_key
+        await self.db.flush()
+        logger.info("Assigned session key '%s' to agent '%s'", session_key, agent.name)
 
     async def _execute_agent_step(
         self, execution: WorkflowExecution, node: dict, agent: Agent, input_data: str
