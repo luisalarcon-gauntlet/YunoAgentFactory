@@ -2,7 +2,7 @@ import logging
 import os
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -212,6 +212,30 @@ async def get_execution_messages(
     except Exception:
         logger.exception("Failed to get messages for execution %s", execution_id)
         raise HTTPException(status_code=500, detail="Failed to retrieve execution messages")
+
+
+@router.delete("/{execution_id}", status_code=204)
+async def delete_execution(
+    execution_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> Response:
+    try:
+        execution = await db.get(WorkflowExecution, execution_id)
+        if not execution:
+            raise HTTPException(status_code=404, detail="Execution not found")
+        if execution.status == "running":
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete a running execution — cancel it first",
+            )
+        await db.delete(execution)
+        await db.commit()
+        return Response(status_code=204)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to delete execution %s", execution_id)
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete execution")
 
 
 @router.post("/{execution_id}/cancel", status_code=200)

@@ -91,23 +91,23 @@ export default function MessageTrail({ executionId, isLive = false }: MessageTra
                 </svg>
                 <span className="text-xs text-muted-foreground">{toName}</span>
                 <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-medium", typeStyle.bg, typeStyle.text)}>
-                  {msg.message_type.replace("_", " ")}
+                  {(msg.message_type || "system").replace("_", " ")}
                 </span>
               </div>
               <span className="text-[10px] text-muted-foreground">
-                {formatTime(msg.created_at)}
+                {msg.created_at ? formatTime(msg.created_at) : "--"}
               </span>
             </div>
 
             {/* Content */}
             <div className="px-3 py-2">
               <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                {msg.content}
+                {msg.content ?? ""}
               </p>
             </div>
 
             {/* Channel badge */}
-            {msg.channel !== "internal" && (
+            {msg.channel && msg.channel !== "internal" && (
               <div className="px-3 pb-1.5">
                 <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                   via {msg.channel}

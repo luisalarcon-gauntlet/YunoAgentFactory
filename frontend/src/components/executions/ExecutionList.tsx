@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Execution } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface ExecutionListProps {
   selectedId?: string;
   onSelect: (execution: Execution) => void;
+  onDeleted?: (id: string) => void;
 }
 
 const statusBadge: Record<string, { bg: string; text: string }> = {
@@ -24,11 +25,21 @@ function formatTimeAgo(dateStr: string): string {
   return `${Math.floor(ms / 86400000)}d ago`;
 }
 
-export default function ExecutionList({ selectedId, onSelect }: ExecutionListProps) {
+export default function ExecutionList({ selectedId, onSelect, onDeleted }: ExecutionListProps) {
+  const queryClient = useQueryClient();
+
   const { data: executions, isLoading, error } = useQuery({
     queryKey: ["executions"],
     queryFn: api.executions.list,
     refetchInterval: 5000,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: api.executions.delete,
+    onSuccess: (_data, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ["executions"] });
+      onDeleted?.(deletedId);
+    },
   });
 
   if (isLoading) {
@@ -67,17 +78,34 @@ export default function ExecutionList({ selectedId, onSelect }: ExecutionListPro
         const badge = statusBadge[exec.status] ?? statusBadge.pending;
         const isSelected = exec.id === selectedId;
 
+        const iterations = Number(exec.iteration_count) || 0;
+
         return (
           <div
             key={exec.id}
             onClick={() => onSelect(exec)}
             className={cn(
-              "px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
+              "group px-3 py-2.5 rounded-lg border cursor-pointer transition-colors relative",
               isSelected
                 ? "border-primary/50 bg-primary/5"
                 : "border-border bg-card hover:border-primary/30 hover:bg-card/80"
             )}
           >
+            {exec.status !== "running" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteMutation.mutate(exec.id);
+                }}
+                disabled={deleteMutation.isPending}
+                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
+                title="Delete execution"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium truncate">
                 {exec.workflow_name ?? "Workflow"}
@@ -88,7 +116,7 @@ export default function ExecutionList({ selectedId, onSelect }: ExecutionListPro
             </div>
             <div className="flex items-center justify-between mt-1">
               <span className="text-[10px] text-muted-foreground">
-                {exec.id.slice(0, 8)}... · {exec.trigger_type}
+                {exec.id.slice(0, 8)}... · {exec.trigger_type || "manual"}
               </span>
               <span className="text-[10px] text-muted-foreground">
                 {exec.created_at ? formatTimeAgo(exec.created_at) : "--"}
@@ -96,7 +124,7 @@ export default function ExecutionList({ selectedId, onSelect }: ExecutionListPro
             </div>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-[10px] text-muted-foreground">
-                {exec.iteration_count} iteration{exec.iteration_count !== 1 ? "s" : ""}
+                {iterations} iteration{iterations !== 1 ? "s" : ""}
               </span>
             </div>
           </div>

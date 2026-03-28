@@ -49,7 +49,7 @@ export default function NodeConfigPanel({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
         {/* Agent info */}
         <div>
           <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">

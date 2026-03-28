@@ -155,7 +155,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
           {/* Name */}
           <div>
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
@@ -252,7 +252,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
                 )}
               >
                 <span className={cn(
-                  "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform",
+                  "absolute left-0 top-0.5 w-3 h-3 rounded-full bg-white transition-transform",
                   scheduleEnabled ? "translate-x-4" : "translate-x-0.5"
                 )} />
               </button>
@@ -283,7 +283,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
                 )}
               >
                 <span className={cn(
-                  "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform",
+                  "absolute left-0 top-0.5 w-3 h-3 rounded-full bg-white transition-transform",
                   memoryEnabled ? "translate-x-4" : "translate-x-0.5"
                 )} />
               </button>

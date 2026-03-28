@@ -24,6 +24,28 @@ class AgentResponse:
     text: str
     token_count: int
     cost_usd: float
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
+# Approximate cost per token by model (USD per token)
+MODEL_PRICING: dict[str, tuple[float, float]] = {
+    # (input_cost_per_token, output_cost_per_token)
+    "claude-sonnet-4-20250514": (3.0 / 1_000_000, 15.0 / 1_000_000),
+    "claude-opus-4-20250514": (15.0 / 1_000_000, 75.0 / 1_000_000),
+    "claude-haiku-4-20250514": (0.80 / 1_000_000, 4.0 / 1_000_000),
+}
+DEFAULT_PRICING = (3.0 / 1_000_000, 15.0 / 1_000_000)  # sonnet default
+
+
+def _estimate_tokens(text: str) -> int:
+    """Rough token estimate: ~4 chars per token for English text."""
+    return max(1, len(text) // 4)
+
+
+def _estimate_cost(input_tokens: int, output_tokens: int, model: str = "") -> float:
+    input_price, output_price = MODEL_PRICING.get(model, DEFAULT_PRICING)
+    return input_tokens * input_price + output_tokens * output_price
 
 
 class OpenClawWSClient:
@@ -163,18 +185,26 @@ class OpenClawWSClient:
         return f"agent:{agent_workspace}:main"
 
     async def send_and_wait(
-        self, session_key: str, message: str, timeout: float = 120
+        self,
+        session_key: str,
+        message: str,
+        timeout: float = 120,
+        on_delta: Callable[[str], asyncio.coroutines] | None = None,
     ) -> AgentResponse:
         """Send a message to an agent and wait for the complete response.
 
         Uses the `agent` RPC method. Text arrives via two channels:
         - `agent` events with stream="assistant" carry real-time deltas
         - `chat` final event carries the complete message in message.content
+
+        Args:
+            on_delta: Optional async callback invoked with each streaming text chunk.
         """
         await self._ensure_connected()
 
         response_parts: list[str] = []
         final_text: str | None = None
+        usage_data: dict = {}
         done_event = asyncio.Event()
 
         async def on_agent_event(event: dict) -> None:
@@ -185,10 +215,16 @@ class OpenClawWSClient:
             stream = payload.get("stream", "")
             data = payload.get("data", {})
             if stream == "assistant" and "delta" in data:
-                response_parts.append(data["delta"])
+                delta = data["delta"]
+                response_parts.append(delta)
+                if on_delta is not None:
+                    try:
+                        await on_delta(delta)
+                    except Exception:
+                        logger.debug("on_delta callback error", exc_info=True)
 
         async def on_chat_event(event: dict) -> None:
-            """Detect final state and extract complete message."""
+            """Detect final state and extract complete message + token usage."""
             nonlocal final_text
             payload = event.get("payload", {})
             if payload.get("sessionKey") != session_key:
@@ -207,6 +243,14 @@ class OpenClawWSClient:
                         parts.append(block)
                 if parts:
                     final_text = "".join(parts)
+
+                # Extract token usage if provided by OpenClaw
+                for key in ("usage", "tokens", "tokenUsage"):
+                    u = payload.get(key) or message_obj.get(key)
+                    if isinstance(u, dict):
+                        usage_data.update(u)
+                        break
+
                 done_event.set()
             elif state in ("aborted", "error"):
                 error_msg = payload.get("error", payload.get("message", "Unknown error"))
@@ -229,16 +273,31 @@ class OpenClawWSClient:
 
             # Prefer the authoritative final text; fall back to collected deltas
             full_text = final_text if final_text is not None else "".join(response_parts)
-            token_count = len(full_text.split()) * 2  # rough estimate
+
+            # Token counting: use OpenClaw-provided data or estimate
+            input_tokens = int(
+                usage_data.get("input_tokens")
+                or usage_data.get("prompt_tokens")
+                or _estimate_tokens(message)
+            )
+            output_tokens = int(
+                usage_data.get("output_tokens")
+                or usage_data.get("completion_tokens")
+                or _estimate_tokens(full_text)
+            )
+            total_tokens = input_tokens + output_tokens
+            cost = _estimate_cost(input_tokens, output_tokens)
 
             logger.info(
-                "Received response from session '%s' (%d chars)",
-                session_key, len(full_text),
+                "Received response from session '%s' (%d chars, ~%d tokens)",
+                session_key, len(full_text), total_tokens,
             )
             return AgentResponse(
                 text=full_text,
-                token_count=token_count,
-                cost_usd=0.0,
+                token_count=total_tokens,
+                cost_usd=cost,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
             )
         except asyncio.TimeoutError:
             logger.error("Agent response timed out for session '%s' after %.0fs", session_key, timeout)

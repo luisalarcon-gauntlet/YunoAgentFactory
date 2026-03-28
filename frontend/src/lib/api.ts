@@ -113,6 +113,13 @@ export interface ExecutionStep {
   created_at: string;
 }
 
+export interface WorkspaceFile {
+  name: string;
+  path: string;
+  size: number;
+  modified_at: string;
+}
+
 export interface AgentMessage {
   id: string;
   execution_id: string;
@@ -139,6 +146,11 @@ export const api = {
       request<Agent>(`/api/v1/agents/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) =>
       request<void>(`/api/v1/agents/${id}`, { method: "DELETE" }),
+    workspaceFiles: (id: string) =>
+      request<WorkspaceFile[]>(`/api/v1/agents/${id}/workspace/files`),
+    workspaceFileContent: (id: string, filepath: string) =>
+      fetch(`${API_URL}/api/v1/agents/${id}/workspace/files/${filepath}`)
+        .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`)))),
   },
 
   workflows: {
@@ -165,6 +177,8 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ workflow_id: workflowId, input }),
       }),
+    delete: (id: string) =>
+      request<void>(`/api/v1/executions/${id}`, { method: "DELETE" }),
     cancel: (id: string) =>
       request<void>(`/api/v1/executions/${id}/cancel`, { method: "POST" }),
   },

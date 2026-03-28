@@ -24,6 +24,12 @@ interface CostSummary {
   stepCount: number;
 }
 
+/** Accumulated streaming text for a step currently in progress. */
+interface StepDelta {
+  text: string;
+  agentName: string;
+}
+
 interface MonitorState {
   // Connection
   isConnected: boolean;
@@ -33,6 +39,9 @@ interface MonitorState {
   agentStatuses: Record<string, AgentStatus>;
   activeExecutions: Record<string, ActiveExecution>;
   costSummary: CostSummary;
+
+  /** Streaming deltas keyed by `${execution_id}:${node_id}` */
+  stepDeltas: Record<string, StepDelta>;
 
   // Actions
   connect: () => void;
@@ -118,13 +127,27 @@ export const useMonitorStore = create<MonitorState>((set, get) => {
       }
     }
 
-    // Update cost summary
-    const costSummary = { ...state.costSummary };
-    if (event.type === "step.completed" && event.duration_ms) {
-      costSummary.stepCount += 1;
+    // Handle streaming deltas
+    const stepDeltas = { ...state.stepDeltas };
+    if (event.type === "step.delta" && event.execution_id && event.node_id && event.delta) {
+      const key = `${event.execution_id}:${event.node_id}`;
+      const existing = stepDeltas[key] || { text: "", agentName: event.agent_name || "" };
+      stepDeltas[key] = { text: existing.text + event.delta, agentName: event.agent_name || existing.agentName };
+    }
+    if (event.type === "step.completed" && event.execution_id && event.node_id) {
+      const key = `${event.execution_id}:${event.node_id}`;
+      delete stepDeltas[key];
     }
 
-    set({ events, agentStatuses, activeExecutions, costSummary, isConnected: wsClient.isConnected });
+    // Update cost summary
+    const costSummary = { ...state.costSummary };
+    if (event.type === "step.completed") {
+      costSummary.stepCount += 1;
+      if (event.token_count) costSummary.totalTokens += event.token_count;
+      if (event.cost_usd) costSummary.totalCostUsd += event.cost_usd;
+    }
+
+    set({ events, agentStatuses, activeExecutions, costSummary, stepDeltas, isConnected: wsClient.isConnected });
   }
 
   return {
@@ -133,6 +156,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => {
     agentStatuses: {},
     activeExecutions: {},
     costSummary: { totalTokens: 0, totalCostUsd: 0, stepCount: 0 },
+    stepDeltas: {},
 
     connect: () => {
       if (unsubscribe) return;

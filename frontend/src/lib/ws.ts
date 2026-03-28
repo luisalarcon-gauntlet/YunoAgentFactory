@@ -3,6 +3,7 @@ export type MonitorEventType =
   | "execution.completed"
   | "step.started"
   | "step.completed"
+  | "step.delta"
   | "agent.message"
   | "agent.status"
   | "channel.message";
@@ -16,6 +17,9 @@ export interface MonitorEvent {
   agent_name?: string;
   status?: string;
   duration_ms?: number;
+  token_count?: number;
+  cost_usd?: number;
+  delta?: string;
   from_agent?: string;
   to_agent?: string;
   content?: string;

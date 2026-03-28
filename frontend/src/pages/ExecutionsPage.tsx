@@ -1,15 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { Execution } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { api, type Execution } from "@/lib/api";
 import ExecutionList from "@/components/executions/ExecutionList";
 import ExecutionDetail from "@/components/executions/ExecutionDetail";
+import ExecutionErrorBoundary from "@/components/executions/ExecutionErrorBoundary";
 
 export default function ExecutionsPage() {
   const [searchParams] = useSearchParams();
   const initialExecId = searchParams.get("execution");
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
 
-  // Auto-select from URL param if present
+  // Fetch execution by URL param so the detail panel opens on direct links
+  const { data: initialExec } = useQuery({
+    queryKey: ["execution", initialExecId],
+    queryFn: () => api.executions.get(initialExecId!),
+    enabled: !!initialExecId && !selectedExecution,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (initialExec && !selectedExecution) {
+      setSelectedExecution(initialExec);
+    }
+  }, [initialExec, selectedExecution]);
+
   const handleSelect = (exec: Execution) => {
     setSelectedExecution(exec);
   };
@@ -28,6 +43,9 @@ export default function ExecutionsPage() {
           <ExecutionList
             selectedId={selectedExecution?.id ?? initialExecId ?? undefined}
             onSelect={handleSelect}
+            onDeleted={(id) => {
+              if (selectedExecution?.id === id) setSelectedExecution(null);
+            }}
           />
         </div>
       </div>
@@ -35,10 +53,15 @@ export default function ExecutionsPage() {
       {/* Right: Detail view */}
       <div className="flex-1 overflow-hidden">
         {selectedExecution ? (
-          <ExecutionDetail
-            execution={selectedExecution}
-            onClose={() => setSelectedExecution(null)}
-          />
+          <ExecutionErrorBoundary
+            key={selectedExecution.id}
+            onReset={() => setSelectedExecution(null)}
+          >
+            <ExecutionDetail
+              execution={selectedExecution}
+              onClose={() => setSelectedExecution(null)}
+            />
+          </ExecutionErrorBoundary>
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">

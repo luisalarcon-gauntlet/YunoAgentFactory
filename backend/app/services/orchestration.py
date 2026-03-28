@@ -199,10 +199,20 @@ class OrchestrationEngine:
                 agent.name, agent.openclaw_session_key, node["id"],
             )
 
+            async def on_delta(text: str) -> None:
+                await self.ws_manager.broadcast({
+                    "type": "step.delta",
+                    "execution_id": str(execution.id),
+                    "node_id": node["id"],
+                    "agent_name": agent.name,
+                    "delta": text,
+                })
+
             response = await self.openclaw.send_and_wait(
                 session_key=agent.openclaw_session_key,
                 message=prompt,
                 timeout=120,
+                on_delta=on_delta,
             )
 
             step.output_data = response.text
@@ -230,6 +240,8 @@ class OrchestrationEngine:
             "agent_name": agent.name,
             "status": step.status,
             "duration_ms": step.duration_ms,
+            "token_count": step.token_count,
+            "cost_usd": float(step.cost_usd) if step.cost_usd else 0.0,
         })
 
         return step
@@ -238,17 +250,21 @@ class OrchestrationEngine:
         node_config = node.get("data", {}).get("config", {})
         task_instruction = node_config.get("task_instruction", "")
 
-        return f"""## Task
-{task_instruction}
+        sections: list[str] = []
 
-## Input from Previous Agent
-{input_data}
+        if agent.system_prompt:
+            sections.append(f"## Role\n{agent.system_prompt}")
 
-## Instructions
-- Complete the task described above using the input provided.
-- Produce clear, structured output.
-- If you need to approve or reject the input, state "APPROVED" or "REJECTED" clearly at the start of your response, followed by your reasoning.
-"""
+        sections.append(f"## Task\n{task_instruction}")
+        sections.append(f"## Input from Previous Agent\n{input_data}")
+        sections.append(
+            "## Instructions\n"
+            "- Complete the task described above using the input provided.\n"
+            "- Produce clear, structured output.\n"
+            "- If approving/rejecting, start your response with APPROVED or REJECTED."
+        )
+
+        return "\n\n".join(sections) + "\n"
 
     def _evaluate_edges(self, graph: dict, source_node_id: str, output: str) -> list[str]:
         edges = [e for e in graph["edges"] if e["source"] == source_node_id]

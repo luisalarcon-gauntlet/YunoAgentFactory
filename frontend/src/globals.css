@@ -78,7 +78,7 @@
   width: 8px;
   height: 8px;
   background: hsl(220, 70%, 50%);
-  border: 2px solid hsl(222.2, 84%, 4.9%);
+  border: 2px solid hsl(var(--background));
 }
 
 .react-flow__handle:hover {
