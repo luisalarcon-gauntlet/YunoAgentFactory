@@ -4,6 +4,7 @@ export type MonitorEventType =
   | "step.started"
   | "step.completed"
   | "step.delta"
+  | "step.heartbeat"
   | "agent.message"
   | "agent.status"
   | "channel.message";
@@ -12,6 +13,7 @@ export interface MonitorEvent {
   type: MonitorEventType;
   execution_id?: string;
   workflow_id?: string;
+  workflow_name?: string;
   node_id?: string;
   agent_id?: string;
   agent_name?: string;
@@ -27,6 +29,8 @@ export interface MonitorEvent {
   channel?: string;
   from?: string;
   timestamp?: string;
+  elapsed_seconds?: number;
+  phase?: string;
 }
 
 type EventHandler = (event: MonitorEvent) => void;

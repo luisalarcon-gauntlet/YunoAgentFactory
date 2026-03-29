@@ -12,6 +12,7 @@ interface AgentStatus {
 interface ActiveExecution {
   execution_id: string;
   workflow_id?: string;
+  workflow_name?: string;
   status: string;
   current_node?: string;
   agent_name?: string;
@@ -30,6 +31,14 @@ interface StepDelta {
   agentName: string;
 }
 
+/** Heartbeat data for a step currently in progress. */
+interface StepHeartbeat {
+  agentName: string;
+  elapsedSeconds: number;
+  phase: "thinking" | "streaming";
+  lastUpdate: number; // Date.now() timestamp
+}
+
 interface MonitorState {
   // Connection
   isConnected: boolean;
@@ -42,6 +51,9 @@ interface MonitorState {
 
   /** Streaming deltas keyed by `${execution_id}:${node_id}` */
   stepDeltas: Record<string, StepDelta>;
+
+  /** Heartbeat data keyed by `${execution_id}:${node_id}` */
+  stepHeartbeats: Record<string, StepHeartbeat>;
 
   // Actions
   connect: () => void;
@@ -97,6 +109,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => {
       activeExecutions[event.execution_id] = {
         execution_id: event.execution_id,
         workflow_id: event.workflow_id,
+        workflow_name: event.workflow_name,
         status: "running",
         startedAt: event.timestamp ?? new Date().toISOString(),
       };
@@ -139,6 +152,22 @@ export const useMonitorStore = create<MonitorState>((set, get) => {
       delete stepDeltas[key];
     }
 
+    // Handle heartbeats
+    const stepHeartbeats = { ...state.stepHeartbeats };
+    if (event.type === "step.heartbeat" && event.execution_id && event.node_id) {
+      const key = `${event.execution_id}:${event.node_id}`;
+      stepHeartbeats[key] = {
+        agentName: event.agent_name || "",
+        elapsedSeconds: event.elapsed_seconds || 0,
+        phase: (event.phase as "thinking" | "streaming") || "thinking",
+        lastUpdate: Date.now(),
+      };
+    }
+    if (event.type === "step.completed" && event.execution_id && event.node_id) {
+      const key = `${event.execution_id}:${event.node_id}`;
+      delete stepHeartbeats[key];
+    }
+
     // Update cost summary
     const costSummary = { ...state.costSummary };
     if (event.type === "step.completed") {
@@ -147,7 +176,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => {
       if (event.cost_usd) costSummary.totalCostUsd += event.cost_usd;
     }
 
-    set({ events, agentStatuses, activeExecutions, costSummary, stepDeltas, isConnected: wsClient.isConnected });
+    set({ events, agentStatuses, activeExecutions, costSummary, stepDeltas, stepHeartbeats, isConnected: wsClient.isConnected });
   }
 
   return {
@@ -157,6 +186,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => {
     activeExecutions: {},
     costSummary: { totalTokens: 0, totalCostUsd: 0, stepCount: 0 },
     stepDeltas: {},
+    stepHeartbeats: {},
 
     connect: () => {
       if (unsubscribe) return;

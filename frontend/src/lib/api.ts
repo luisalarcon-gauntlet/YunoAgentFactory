@@ -88,11 +88,23 @@ export interface Execution {
   current_node_id: string | null;
   iteration_count: number;
   trigger_type: string;
+  source: "web" | "telegram";
+  source_metadata: Record<string, unknown>;
   started_at: string | null;
   completed_at: string | null;
   error_message: string | null;
   created_at: string;
   workflow_name?: string;
+}
+
+export interface AgentEvent {
+  id: string;
+  run_id: string;
+  agent_name: string;
+  event_type: "started" | "output" | "error" | "completed";
+  message: string;
+  metadata: Record<string, unknown> | null;
+  timestamp: string;
 }
 
 export interface ExecutionStep {
@@ -181,5 +193,23 @@ export const api = {
       request<void>(`/api/v1/executions/${id}`, { method: "DELETE" }),
     cancel: (id: string) =>
       request<void>(`/api/v1/executions/${id}/cancel`, { method: "POST" }),
+  },
+
+  runs: {
+    create: (workflowId: string, source: "web" | "telegram" = "web", inputs?: string, sourceMetadata?: Record<string, unknown>) =>
+      request<Execution>("/api/v1/runs", {
+        method: "POST",
+        body: JSON.stringify({ workflow_id: workflowId, source, inputs, source_metadata: sourceMetadata }),
+      }),
+    list: (workflowId?: string, limit?: number) => {
+      const params = new URLSearchParams();
+      if (workflowId) params.set("workflow_id", workflowId);
+      if (limit) params.set("limit", String(limit));
+      const qs = params.toString();
+      return request<Execution[]>(`/api/v1/runs${qs ? `?${qs}` : ""}`);
+    },
+    get: (id: string) => request<Execution>(`/api/v1/runs/${id}`),
+    events: (id: string) => request<AgentEvent[]>(`/api/v1/runs/${id}/events`),
+    output: (id: string) => request<{ run_id: string; status: string; output: string }>(`/api/v1/runs/${id}/output`),
   },
 };

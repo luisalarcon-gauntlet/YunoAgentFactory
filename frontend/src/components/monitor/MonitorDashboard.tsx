@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 import { useMonitorStore } from "@/stores/monitor-store";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import AgentStatusGrid from "./AgentStatusGrid";
-import LiveEventFeed from "./LiveEventFeed";
+import ActiveRunsPanel from "./ActiveRunsPanel";
+import RecentRunsList from "./RecentRunsList";
 import CostTracker from "./CostTracker";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +14,12 @@ export default function MonitorDashboard() {
   const isConnected = useMonitorStore((s) => s.isConnected);
   const activeExecutions = useMonitorStore((s) => s.activeExecutions);
 
+  const { data: recentRuns, refetch: refetchRuns } = useQuery({
+    queryKey: ["runs-recent"],
+    queryFn: () => api.runs.list(undefined, 10),
+    refetchInterval: 5000,
+  });
+
   useEffect(() => {
     connect();
     return () => disconnect();
@@ -19,6 +28,7 @@ export default function MonitorDashboard() {
   const activeExecs = Object.values(activeExecutions).filter(
     (e) => e.status === "running"
   );
+  const hasActivity = activeExecs.length > 0;
 
   return (
     <div className="flex flex-col gap-4 h-[calc(100vh-96px)]">
@@ -27,74 +37,52 @@ export default function MonitorDashboard() {
         <div>
           <h2 className="text-sm font-semibold">Live Monitor</h2>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            Real-time agent activity and execution monitoring
+            {hasActivity
+              ? `${activeExecs.length} active execution${activeExecs.length > 1 ? "s" : ""}`
+              : "Waiting for activity..."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={cn(
+        <span
+          className={cn(
             "flex items-center gap-1.5 text-[10px] font-medium px-2 py-1 rounded-full",
-            isConnected ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"
-          )}>
-            <span className={cn(
+            isConnected
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "bg-red-500/15 text-red-400"
+          )}
+        >
+          <span
+            className={cn(
               "w-1.5 h-1.5 rounded-full",
               isConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"
-            )} />
-            {isConnected ? "Connected" : "Disconnected"}
-          </span>
-        </div>
+            )}
+          />
+          {isConnected ? "Live" : "Disconnected"}
+        </span>
       </div>
 
-      {/* Cost summary */}
+      {/* Stats bar */}
       <CostTracker />
 
-      {/* Agent status grid */}
-      <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          Agent Status
-        </h3>
-        <AgentStatusGrid />
-      </div>
+      {/* Main content - split view */}
+      <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
+        {/* Active executions with streaming output */}
+        {hasActivity && <ActiveRunsPanel executions={activeExecs} />}
 
-      {/* Active executions */}
-      {activeExecs.length > 0 && (
+        {/* Agent status */}
         <div>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Active Executions
+            Agents
           </h3>
-          <div className="space-y-1">
-            {activeExecs.map((exec) => (
-              <div
-                key={exec.execution_id}
-                className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-card/50"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs font-medium">
-                    {exec.execution_id.slice(0, 8)}...
-                  </span>
-                  {exec.agent_name && (
-                    <span className="text-[10px] text-muted-foreground">
-                      → {exec.agent_name}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] text-muted-foreground">
-                  {exec.startedAt ? new Date(exec.startedAt).toLocaleTimeString() : ""}
-                </span>
-              </div>
-            ))}
-          </div>
+          <AgentStatusGrid />
         </div>
-      )}
 
-      {/* Event feed */}
-      <div className="flex-1 min-h-0 rounded-lg border border-border bg-card/30 overflow-hidden">
-        <div className="px-3 py-2 border-b border-border">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Event Feed
+        {/* Recent runs */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Recent Runs
           </h3>
+          <RecentRunsList runs={recentRuns ?? []} />
         </div>
-        <LiveEventFeed />
       </div>
     </div>
   );

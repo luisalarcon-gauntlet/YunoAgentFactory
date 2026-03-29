@@ -59,7 +59,7 @@ async def clone_template(template_id: uuid.UUID, db: AsyncSession = Depends(get_
         if not template.is_template:
             raise HTTPException(status_code=400, detail="Workflow is not a template")
         clone = Workflow(
-            name=f"{template.name} (Copy)",
+            name=template.name,
             description=template.description,
             graph=template.graph,
             is_template=False,

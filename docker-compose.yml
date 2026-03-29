@@ -51,6 +51,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://platform:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/agentplatform
       OPENCLAW_WS_URL: ws://openclaw:18789
       OPENCLAW_AUTH_TOKEN: ${OPENCLAW_AUTH_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_DEFAULT_CHAT_ID: ${TELEGRAM_DEFAULT_CHAT_ID:-}
     volumes:
       - ./backend:/app
       - ./openclaw-data/workspace:/openclaw-workspace

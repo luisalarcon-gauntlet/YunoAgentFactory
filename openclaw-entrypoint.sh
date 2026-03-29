@@ -34,16 +34,13 @@ if (!config.gateway.controlUi.allowedOrigins) {
   ];
 }
 
-// Merge Telegram bot token into channels without overwriting other keys
+// Telegram is handled directly by the backend service (telegram_bot.py)
+// via the Bot API — not through OpenClaw's channel system.
+// Disable OpenClaw's Telegram channel to avoid polling conflicts (409).
 if (!config.channels) config.channels = {};
-if (token) {
-  if (!config.channels.telegram) config.channels.telegram = {};
-  config.channels.telegram.enabled = true;
-  config.channels.telegram.botToken = token;
-  config.channels.telegram.dmPolicy = config.channels.telegram.dmPolicy || 'pairing';
-  console.log('Telegram channel configured in', configPath);
-} else {
-  console.warn('WARNING: TELEGRAM_BOT_TOKEN not set — Telegram channel will not be configured');
+if (config.channels.telegram) {
+  config.channels.telegram.enabled = false;
+  console.log('Telegram channel disabled in OpenClaw (handled by backend)');
 }
 
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));

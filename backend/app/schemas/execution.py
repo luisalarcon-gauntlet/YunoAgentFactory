@@ -19,6 +19,8 @@ class ExecutionResponse(BaseModel):
     current_node_id: str | None
     iteration_count: int
     trigger_type: str
+    source: str = "web"
+    source_metadata: dict = {}
     started_at: datetime | None
     completed_at: datetime | None
     error_message: str | None

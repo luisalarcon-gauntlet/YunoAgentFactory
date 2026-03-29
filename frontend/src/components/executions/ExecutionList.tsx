@@ -17,6 +17,11 @@ const statusBadge: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: "bg-zinc-500/15", text: "text-zinc-400" },
 };
 
+const sourceBadge: Record<string, { bg: string; text: string; label: string }> = {
+  web: { bg: "bg-sky-500/15", text: "text-sky-400", label: "Web" },
+  telegram: { bg: "bg-indigo-500/15", text: "text-indigo-400", label: "Telegram" },
+};
+
 function formatTimeAgo(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime();
   if (ms < 60000) return "just now";
@@ -123,6 +128,14 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
               </span>
             </div>
             <div className="flex items-center gap-3 mt-1">
+              {exec.source && (() => {
+                const sb = sourceBadge[exec.source] ?? sourceBadge.web;
+                return (
+                  <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", sb.bg, sb.text)}>
+                    {sb.label}
+                  </span>
+                );
+              })()}
               <span className="text-[10px] text-muted-foreground">
                 {iterations} iteration{iterations !== 1 ? "s" : ""}
               </span>

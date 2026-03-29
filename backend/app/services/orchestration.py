@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -5,7 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import Agent
-from app.models.execution import ExecutionStep, WorkflowExecution
+from app.models.execution import AgentEvent, ExecutionStep, WorkflowExecution
 from app.models.message import AgentMessage
 from app.models.workflow import Workflow
 from app.services.openclaw_client import OpenClawWSClient
@@ -55,6 +56,7 @@ class OrchestrationEngine:
             "type": "execution.started",
             "execution_id": str(execution.id),
             "workflow_id": str(workflow_id),
+            "workflow_name": workflow.name,
         })
 
         try:
@@ -191,6 +193,14 @@ class OrchestrationEngine:
             "agent_name": agent.name,
         })
 
+        await self._log_agent_event(
+            run_id=execution.id,
+            agent_name=agent.name,
+            event_type="started",
+            message=f"Agent '{agent.name}' started processing node {node['id']}",
+            metadata={"node_id": node["id"]},
+        )
+
         try:
             prompt = self._build_agent_prompt(agent, node, input_data)
 
@@ -199,7 +209,11 @@ class OrchestrationEngine:
                 agent.name, agent.openclaw_session_key, node["id"],
             )
 
+            last_delta_at = datetime.now(timezone.utc)
+
             async def on_delta(text: str) -> None:
+                nonlocal last_delta_at
+                last_delta_at = datetime.now(timezone.utc)
                 await self.ws_manager.broadcast({
                     "type": "step.delta",
                     "execution_id": str(execution.id),
@@ -208,12 +222,33 @@ class OrchestrationEngine:
                     "delta": text,
                 })
 
-            response = await self.openclaw.send_and_wait(
-                session_key=agent.openclaw_session_key,
-                message=prompt,
-                timeout=120,
-                on_delta=on_delta,
-            )
+            async def heartbeat_loop() -> None:
+                """Broadcast heartbeat every 5s so the frontend knows the agent is alive."""
+                step_start = datetime.now(timezone.utc)
+                while True:
+                    await asyncio.sleep(5)
+                    elapsed = (datetime.now(timezone.utc) - step_start).total_seconds()
+                    since_delta = (datetime.now(timezone.utc) - last_delta_at).total_seconds()
+                    phase = "streaming" if since_delta < 10 else "thinking"
+                    await self.ws_manager.broadcast({
+                        "type": "step.heartbeat",
+                        "execution_id": str(execution.id),
+                        "node_id": node["id"],
+                        "agent_name": agent.name,
+                        "elapsed_seconds": int(elapsed),
+                        "phase": phase,
+                    })
+
+            heartbeat_task = asyncio.create_task(heartbeat_loop())
+            try:
+                response = await self.openclaw.send_and_wait(
+                    session_key=agent.openclaw_session_key,
+                    message=prompt,
+                    timeout=600,
+                    on_delta=on_delta,
+                )
+            finally:
+                heartbeat_task.cancel()
 
             step.output_data = response.text
             step.token_count = response.token_count
@@ -222,7 +257,7 @@ class OrchestrationEngine:
 
         except TimeoutError:
             step.status = "failed"
-            step.error_message = "Agent response timed out"
+            step.error_message = "Agent response timed out after 10 minutes"
             logger.error("Agent '%s' timed out at node %s", agent.name, node["id"])
         except Exception as e:
             step.status = "failed"
@@ -232,6 +267,30 @@ class OrchestrationEngine:
         step.completed_at = datetime.now(timezone.utc)
         if step.started_at:
             step.duration_ms = int((step.completed_at - step.started_at).total_seconds() * 1000)
+
+        if step.status == "completed" and step.output_data:
+            await self._log_agent_event(
+                run_id=execution.id,
+                agent_name=agent.name,
+                event_type="output",
+                message=step.output_data[:2000],
+                metadata={"node_id": node["id"], "token_count": step.token_count},
+            )
+            await self._log_agent_event(
+                run_id=execution.id,
+                agent_name=agent.name,
+                event_type="completed",
+                message=f"Agent '{agent.name}' finished node {node['id']}",
+                metadata={"node_id": node["id"], "duration_ms": step.duration_ms},
+            )
+        elif step.status == "failed":
+            await self._log_agent_event(
+                run_id=execution.id,
+                agent_name=agent.name,
+                event_type="error",
+                message=step.error_message or "Unknown error",
+                metadata={"node_id": node["id"]},
+            )
 
         await self.ws_manager.broadcast({
             "type": "step.completed",
@@ -303,6 +362,24 @@ class OrchestrationEngine:
 
     def _get_node(self, graph: dict, node_id: str) -> dict:
         return next(n for n in graph["nodes"] if n["id"] == node_id)
+
+    async def _log_agent_event(
+        self,
+        run_id: uuid.UUID,
+        agent_name: str,
+        event_type: str,
+        message: str = "",
+        metadata: dict | None = None,
+    ) -> None:
+        event = AgentEvent(
+            run_id=run_id,
+            agent_name=agent_name,
+            event_type=event_type,
+            message=message,
+            event_metadata=metadata or {},
+        )
+        self.db.add(event)
+        await self.db.flush()
 
     async def _log_agent_message(
         self,

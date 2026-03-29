@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ExecutionStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useMonitorStore } from "@/stores/monitor-store";
 
 interface StepTimelineProps {
   steps: ExecutionStep[];
   activeStepId?: string;
+  executionId?: string;
   onStepClick?: (step: ExecutionStep) => void;
 }
 
@@ -50,7 +52,42 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export default function StepTimeline({ steps, activeStepId, onStepClick }: StepTimelineProps) {
+/** Ticking elapsed timer for running steps. */
+function RunningElapsed({ startedAt, executionId, nodeId }: { startedAt: string; executionId?: string; nodeId?: string }) {
+  const [elapsed, setElapsed] = useState(() => Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+  const heartbeats = useMonitorStore((s) => s.stepHeartbeats);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+
+  const key = executionId && nodeId ? `${executionId}:${nodeId}` : "";
+  const hb = key ? heartbeats[key] : undefined;
+  const phase = hb?.phase ?? "thinking";
+
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const display = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+  return (
+    <div className="flex items-center gap-2 mt-1.5">
+      <div className="flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3 text-emerald-400">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <span className="text-xs text-emerald-400 tabular-nums">{display}</span>
+      </div>
+      <span className="text-[10px] text-muted-foreground">
+        {phase === "streaming" ? "Generating output..." : "Thinking..."}
+      </span>
+    </div>
+  );
+}
+
+export default function StepTimeline({ steps, activeStepId, executionId, onStepClick }: StepTimelineProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
 
@@ -129,7 +166,13 @@ export default function StepTimeline({ steps, activeStepId, onStepClick }: StepT
               </div>
 
               {/* Metrics row */}
-              {step.status !== "pending" && (
+              {step.status === "running" && step.started_at ? (
+                <RunningElapsed
+                  startedAt={step.started_at}
+                  executionId={executionId}
+                  nodeId={step.node_id}
+                />
+              ) : step.status !== "pending" && (
                 <div className="flex gap-4 mt-1.5">
                   {Number(step.duration_ms) > 0 && (
                     <div className="flex items-center gap-1">

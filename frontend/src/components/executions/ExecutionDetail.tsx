@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, type Execution, type ExecutionStep } from "@/lib/api";
+import { api, type Execution, type ExecutionStep, type AgentEvent } from "@/lib/api";
 import { downloadReport } from "@/lib/export-report";
 import StepTimeline from "./StepTimeline";
 import StepDetailModal from "./StepDetailModal";
@@ -21,7 +21,70 @@ const statusBadge: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: "bg-zinc-500/15", text: "text-zinc-400" },
 };
 
-type Tab = "steps" | "conversation";
+type Tab = "steps" | "conversation" | "events";
+
+const sourceBadgeMap: Record<string, { bg: string; text: string; label: string }> = {
+  web: { bg: "bg-sky-500/15", text: "text-sky-400", label: "Web" },
+  telegram: { bg: "bg-indigo-500/15", text: "text-indigo-400", label: "Telegram" },
+};
+
+const eventTypeColor: Record<string, string> = {
+  started: "text-blue-400",
+  output: "text-emerald-400",
+  completed: "text-sky-400",
+  error: "text-red-400",
+};
+
+function EventTimeline({ events }: { events: AgentEvent[] }) {
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground text-sm">
+        No events recorded yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 space-y-2">
+      {events.map((event) => (
+        <div
+          key={event.id}
+          className="flex gap-3 items-start px-3 py-2 rounded-lg border border-border/50 bg-card/30"
+        >
+          {/* Dot */}
+          <div className="mt-1.5 shrink-0">
+            <span
+              className={cn(
+                "block w-2 h-2 rounded-full",
+                event.event_type === "started" ? "bg-blue-500" :
+                event.event_type === "output" ? "bg-emerald-500" :
+                event.event_type === "completed" ? "bg-sky-500" :
+                "bg-red-500"
+              )}
+            />
+          </div>
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-foreground">{event.agent_name}</span>
+              <span className={cn("text-[10px] font-medium", eventTypeColor[event.event_type] ?? "text-muted-foreground")}>
+                {event.event_type}
+              </span>
+              <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
+                {new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
+            </div>
+            {event.message && event.event_type !== "started" && event.event_type !== "completed" && (
+              <p className="text-xs text-foreground/70 mt-1 whitespace-pre-wrap break-words line-clamp-4">
+                {event.message}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function formatDuration(start: string | null, end: string | null): string {
   if (!start) return "--";
@@ -169,28 +232,72 @@ function ConversationView({ steps }: { steps: ExecutionStep[] }) {
   );
 }
 
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
+
 /** Shows live streaming output for a running execution. */
 function LiveStreamPanel({ executionId }: { executionId: string }) {
   const stepDeltas = useMonitorStore((s) => s.stepDeltas);
+  const stepHeartbeats = useMonitorStore((s) => s.stepHeartbeats);
+
   const activeDeltas = Object.entries(stepDeltas).filter(
     ([key]) => key.startsWith(executionId + ":")
   );
+  const activeHeartbeats = Object.entries(stepHeartbeats).filter(
+    ([key]) => key.startsWith(executionId + ":")
+  );
 
-  if (activeDeltas.length === 0) return null;
+  // Merge: show heartbeat-only entries (thinking, no deltas yet) alongside delta entries
+  const shownKeys = new Set(activeDeltas.map(([k]) => k));
+  const thinkingOnly = activeHeartbeats.filter(([k]) => !shownKeys.has(k));
+
+  if (activeDeltas.length === 0 && thinkingOnly.length === 0) return null;
 
   return (
     <div className="mx-4 mt-3 space-y-2">
-      {activeDeltas.map(([key, delta]) => (
-        <div key={key} className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-medium text-emerald-400">{delta.agentName} is typing...</span>
+      {/* Steps that are thinking (no output yet) */}
+      {thinkingOnly.map(([key, hb]) => (
+        <div key={key} className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+            </span>
+            <span className="text-xs font-medium text-amber-400">{hb.agentName} is thinking...</span>
+            <span className="text-[10px] text-amber-400/60 ml-auto tabular-nums">
+              {formatElapsed(hb.elapsedSeconds)}
+            </span>
           </div>
-          <p className="text-xs text-foreground/80 whitespace-pre-wrap break-words leading-relaxed max-h-32 overflow-y-auto">
-            {delta.text}
+          <p className="text-[10px] text-muted-foreground mt-1.5">
+            Agent is processing the request. This can take several minutes for complex tasks.
           </p>
         </div>
       ))}
+
+      {/* Steps that are actively streaming output */}
+      {activeDeltas.map(([key, delta]) => {
+        const hb = stepHeartbeats[key];
+        return (
+          <div key={key} className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-medium text-emerald-400">{delta.agentName} is typing...</span>
+              {hb && (
+                <span className="text-[10px] text-emerald-400/60 ml-auto tabular-nums">
+                  {formatElapsed(hb.elapsedSeconds)}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-foreground/80 whitespace-pre-wrap break-words leading-relaxed max-h-32 overflow-y-auto">
+              {delta.text}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -204,6 +311,12 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
     queryKey: ["execution-steps", execution.id],
     queryFn: () => api.executions.steps(execution.id),
     refetchInterval: isLive ? 2000 : false,
+  });
+
+  const { data: events, isLoading: eventsLoading } = useQuery({
+    queryKey: ["run-events", execution.id],
+    queryFn: () => api.runs.events(execution.id),
+    refetchInterval: isLive ? 3000 : false,
   });
 
   const badge = statusBadge[execution.status] ?? statusBadge.pending;
@@ -222,6 +335,14 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", badge.bg, badge.text)}>
               {execution.status}
             </span>
+            {execution.source && (() => {
+              const sb = sourceBadgeMap[execution.source] ?? sourceBadgeMap.web;
+              return (
+                <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", sb.bg, sb.text)}>
+                  {sb.label}
+                </span>
+              );
+            })()}
             {isLive && (
               <span className="flex items-center gap-1 text-[10px] text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -310,6 +431,17 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
         >
           Conversation
         </button>
+        <button
+          onClick={() => setActiveTab("events")}
+          className={cn(
+            "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+            activeTab === "events"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Events{events && events.length > 0 ? ` (${events.length})` : ""}
+        </button>
       </div>
 
       {/* Content */}
@@ -325,6 +457,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             ) : (
               <StepTimeline
                 steps={steps ?? []}
+                executionId={execution.id}
                 onStepClick={(step) => setSelectedStep(step)}
               />
             )}
@@ -332,6 +465,17 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
         )}
         {activeTab === "conversation" && (
           <ConversationView steps={steps ?? []} />
+        )}
+        {activeTab === "events" && (
+          eventsLoading ? (
+            <div className="px-4 py-3 space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 rounded-lg bg-muted/30 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <EventTimeline events={events ?? []} />
+          )
         )}
       </div>
 

@@ -5,8 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import async_session_factory
-from app.routers import agents, executions, workflows
+from app.routers import agents, executions, runs, workflows
 from app.seed import seed_templates
+from app.services.telegram_bot import telegram_bot
 from app.websocket import monitor
 
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +22,14 @@ async def lifespan(app: FastAPI):
             await seed_templates(session)
         except Exception:
             logger.exception("Failed to seed templates")
+
+    # Start Telegram bot polling
+    await telegram_bot.start()
+
     yield
+
+    # Shutdown Telegram bot
+    await telegram_bot.stop()
 
 
 app = FastAPI(
@@ -44,6 +52,7 @@ app.include_router(agents.router)
 app.include_router(workflows.router)
 app.include_router(executions.router)
 app.include_router(executions.debug_router)
+app.include_router(runs.router)
 app.include_router(monitor.router)
 
 
