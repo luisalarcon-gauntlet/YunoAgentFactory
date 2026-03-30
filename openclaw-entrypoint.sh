@@ -6,12 +6,11 @@ CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 
 mkdir -p "$CONFIG_DIR"
 
-# Use Node.js (available in the OpenClaw image) to merge gateway and Telegram
-# config into openclaw.json without overwriting existing settings
+# Use Node.js (available in the OpenClaw image) to merge gateway config
+# into openclaw.json without overwriting existing settings
 node -e "
 const fs = require('fs');
 const configPath = '$CONFIG_FILE';
-const token = process.env.TELEGRAM_BOT_TOKEN || '';
 
 let config = {};
 try {
@@ -34,14 +33,22 @@ if (!config.gateway.controlUi.allowedOrigins) {
   ];
 }
 
+// Set the auth token from OPENCLAW_GATEWAY_TOKEN env var so the gateway
+// and backend always agree on the same token.
+const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN || '';
+if (gatewayToken) {
+  if (!config.gateway.auth) config.gateway.auth = {};
+  config.gateway.auth.mode = 'token';
+  config.gateway.auth.token = gatewayToken;
+}
+
 // Telegram is handled directly by the backend service (telegram_bot.py)
 // via the Bot API — not through OpenClaw's channel system.
-// Disable OpenClaw's Telegram channel to avoid polling conflicts (409).
+// Always disable OpenClaw's Telegram channel to avoid polling conflicts (409).
 if (!config.channels) config.channels = {};
-if (config.channels.telegram) {
-  config.channels.telegram.enabled = false;
-  console.log('Telegram channel disabled in OpenClaw (handled by backend)');
-}
+if (!config.channels.telegram) config.channels.telegram = {};
+config.channels.telegram.enabled = false;
+console.log('Telegram channel disabled in OpenClaw (handled by backend)');
 
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Gateway dashboard origins:', JSON.stringify(config.gateway.controlUi.allowedOrigins));

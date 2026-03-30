@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 import websockets
+from langsmith import traceable
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,7 @@ class OpenClawWSClient:
         """
         return f"agent:{agent_workspace}:main"
 
+    @traceable(run_type="llm", name="OpenClaw RPC")
     async def send_and_wait(
         self,
         session_key: str,

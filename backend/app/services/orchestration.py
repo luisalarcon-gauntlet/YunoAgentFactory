@@ -3,6 +3,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+from langsmith import traceable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import Agent
@@ -20,6 +21,7 @@ class OrchestrationEngine:
         self.openclaw = openclaw
         self.ws_manager = ws_manager
 
+    @traceable(run_type="chain", name="Pipeline Execution")
     async def run_workflow(
         self,
         workflow_id: uuid.UUID,
@@ -172,6 +174,7 @@ class OrchestrationEngine:
         await self.db.flush()
         logger.info("Assigned session key '%s' to agent '%s'", session_key, agent.name)
 
+    @traceable(run_type="chain", name="Agent Step")
     async def _execute_agent_step(
         self, execution: WorkflowExecution, node: dict, agent: Agent, input_data: str
     ) -> ExecutionStep:
