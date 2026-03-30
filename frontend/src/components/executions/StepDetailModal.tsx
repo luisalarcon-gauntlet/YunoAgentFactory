@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ExecutionStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import MarkdownContent from "@/components/ui/markdown-content";
 
 interface StepDetailModalProps {
   step: ExecutionStep;
@@ -155,9 +156,7 @@ export default function StepDetailModal({ step, onClose }: StepDetailModalProps)
                     <CopyButton text={step.output_data} />
                   </div>
                   <div className="bg-muted/20 border border-border/50 rounded-lg p-4">
-                    <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words leading-relaxed">
-                      {step.output_data}
-                    </p>
+                    <MarkdownContent content={step.output_data} />
                   </div>
                 </>
               ) : (

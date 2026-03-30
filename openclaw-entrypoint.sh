@@ -50,6 +50,20 @@ if (!config.channels.telegram) config.channels.telegram = {};
 config.channels.telegram.enabled = false;
 console.log('Telegram channel disabled in OpenClaw (handled by backend)');
 
+// Configure Gemini as the web search provider (replaces DuckDuckGo)
+const geminiKey = process.env.GEMINI_API_KEY || '';
+if (geminiKey) {
+  if (!config.tools) config.tools = {};
+  if (!config.tools.web) config.tools.web = {};
+  if (!config.tools.web.search) config.tools.web.search = {};
+  config.tools.web.search.provider = 'gemini';
+  if (!config.tools.web.search.gemini) config.tools.web.search.gemini = {};
+  config.tools.web.search.gemini.apiKey = geminiKey;
+  console.log('Web search provider set to Gemini');
+} else {
+  console.log('GEMINI_API_KEY not set — web search provider unchanged');
+}
+
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Gateway dashboard origins:', JSON.stringify(config.gateway.controlUi.allowedOrigins));
 "

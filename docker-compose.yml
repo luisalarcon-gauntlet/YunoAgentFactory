@@ -9,12 +9,18 @@ services:
       - ./openclaw-data/config:/home/node/.openclaw
       - ./openclaw-data/workspace:/home/node/workspace
       - ./openclaw-entrypoint.sh:/openclaw-entrypoint.sh:ro
+      - /var/www/deployments:/deployments
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+    group_add:
+      - "988"
     entrypoint: ["/bin/sh", "/openclaw-entrypoint.sh"]
     command: ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]
     env_file:
       - .env
     environment:
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_AUTH_TOKEN}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 10s
@@ -53,9 +59,11 @@ services:
       OPENCLAW_AUTH_TOKEN: ${OPENCLAW_AUTH_TOKEN}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_DEFAULT_CHAT_ID: ${TELEGRAM_DEFAULT_CHAT_ID:-}
+      TELEGRAM_ACCESS_PIN: ${TELEGRAM_ACCESS_PIN:-}
       LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
       LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-yuno-agent-factory}
       LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      ADMIN_USERS: ${ADMIN_USERS:-}
     volumes:
       - ./backend:/app
       - ./openclaw-data/workspace:/openclaw-workspace
@@ -72,8 +80,8 @@ services:
     ports:
       - "${FRONTEND_PORT:-3001}:3000"
     environment:
-      VITE_API_URL: http://${HOST_IP:-localhost}:${BACKEND_PORT:-8001}
-      VITE_WS_URL: ws://${HOST_IP:-localhost}:${BACKEND_PORT:-8001}
+      VITE_API_URL: ""
+      VITE_WS_URL: ""
     volumes:
       - ./frontend:/app
       - /app/node_modules

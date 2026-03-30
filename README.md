@@ -9,14 +9,15 @@ A visual platform for configuring, orchestrating, and monitoring multi-agent AI 
 │                        BROWSER (User)                           │
 │                                                                 │
 │   React (Vite) + Tailwind + shadcn/ui + React Flow             │
+│   - Login / Basic Auth                                          │
 │   - Agent CRUD UI                                               │
 │   - Visual Workflow Builder (node graph)                        │
 │   - Live Monitoring Dashboard                                   │
 │   - Execution History & Message Trail Viewer                    │
 │                                                                 │
 │   Connects to backend via:                                      │
-│     REST  → http://VPS_IP:8000/api/v1/...                       │
-│     WS    → ws://VPS_IP:8000/ws/monitor                         │
+│     REST  → http://<host>:8000/api/v1/...                       │
+│     WS    → ws://<host>:8000/ws/monitor                         │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
                        │ HTTP REST + WebSocket
@@ -30,8 +31,8 @@ A visual platform for configuring, orchestrating, and monitoring multi-agent AI 
 │   │  (CRUD,      │  │  (push live  │  │  Engine              │  │
 │   │   triggers)  │  │   events to  │  │  (workflow executor,  │  │
 │   │              │  │   frontend)  │  │   agent-to-agent     │  │
-│   │              │  │              │  │   message routing,   │  │
-│   │              │  │              │  │   condition eval,    │  │
+│   │  Basic Auth  │  │              │  │   message routing,   │  │
+│   │  Middleware   │  │              │  │   condition eval,    │  │
 │   │              │  │              │  │   retry/loop logic)  │  │
 │   └──────────────┘  └──────────────┘  └──────────────────────┘  │
 │                                                                 │
@@ -61,9 +62,9 @@ A visual platform for configuring, orchestrating, and monitoring multi-agent AI 
 
 ### Component Descriptions
 
-**Frontend (React + Vite)** — Single-page application with a dark-themed UI built on shadcn/ui components. Features a drag-and-drop workflow builder powered by React Flow, real-time monitoring via WebSocket, and a complete agent management interface. Zustand manages global state for live events.
+**Frontend (React + Vite)** — Single-page application with a dark-themed UI built on shadcn/ui components. Features a drag-and-drop workflow builder powered by React Flow, real-time monitoring via WebSocket, and a complete agent management interface. Includes Basic Auth login flow and route guards. Zustand manages global state for live events.
 
-**Backend (FastAPI)** — Async Python API that handles agent and workflow CRUD, triggers workflow executions through the orchestration engine, and pushes real-time events to connected frontends via WebSocket. All database operations use SQLAlchemy 2.0 async ORM with Pydantic v2 schemas.
+**Backend (FastAPI)** — Async Python API that handles agent and workflow CRUD, triggers workflow executions through the orchestration engine, and pushes real-time events to connected frontends via WebSocket. Protected by Basic Auth middleware with configurable admin users. All database operations use SQLAlchemy 2.0 async ORM with Pydantic v2 schemas.
 
 **Orchestration Engine** — The core runtime. Traverses workflow graphs node-by-node, dispatches work to agents via OpenClaw's WebSocket RPC, evaluates edge conditions (approved/rejected/contains/always), manages feedback loops, enforces max-iteration safety limits, and persists every step and inter-agent message for full audit trails.
 
@@ -104,6 +105,7 @@ A visual platform for configuring, orchestrating, and monitoring multi-agent AI 
 | Frontend | React (Vite) + TypeScript + Tailwind CSS + shadcn/ui + React Flow |
 | Backend | FastAPI + SQLAlchemy 2.0 + asyncpg + Pydantic v2 |
 | Database | PostgreSQL 16 |
+| Auth | Basic Auth (backend middleware + frontend login page) |
 | Agent Runtime | OpenClaw (Docker) |
 | External Channel | Telegram |
 | Containerization | Docker Compose (4 services) |
@@ -120,8 +122,8 @@ A visual platform for configuring, orchestrating, and monitoring multi-agent AI 
 
 ```bash
 # 1. Clone the repo
-git clone <repo-url>
-cd yuno-agent-platform
+git clone https://github.com/luisalarcon-gauntlet/YunoAgentFactory.git
+cd YunoAgentFactory
 
 # 2. Copy environment config
 cp .env.example .env
@@ -129,6 +131,7 @@ cp .env.example .env
 # 3. Edit .env with your API keys
 #    Required: ANTHROPIC_API_KEY
 #    Optional: TELEGRAM_BOT_TOKEN
+#    Optional: ADMIN_USERS=user1:pass1,user2:pass2 (enables Basic Auth)
 
 # 4. Start everything
 ./setup.sh
@@ -143,6 +146,17 @@ docker compose up --build -d
 ```
 
 The backend automatically seeds two workflow templates (Dev Pipeline, Research Pipeline) on first startup.
+
+### Authentication
+
+The platform supports optional Basic Auth. Set the `ADMIN_USERS` environment variable to enable it:
+
+```bash
+# In .env
+ADMIN_USERS=admin:secretpassword,user2:anotherpass
+```
+
+When `ADMIN_USERS` is set, the frontend shows a login page and all API requests require credentials. When unset, auth is disabled and the platform is open.
 
 ### Running Tests
 
@@ -159,7 +173,7 @@ docker compose -f docker-compose.test.yml up --abort-on-container-exit
 
 ## Telegram Integration Setup
 
-Telegram allows users to chat with agents via their phone. Here's how to set it up:
+Telegram allows users to chat with agents via their phone.
 
 ### Step 1: Create a Bot with BotFather
 
@@ -202,23 +216,6 @@ OpenClaw reads the token on startup and connects to Telegram via long-polling.
 2. Add `telegram` to the agent's **Channels** field
 3. Save — OpenClaw routes Telegram messages to that agent's workspace/session
 
-### What You'll See in the Demo
-
-1. The Telegram-enabled agent shows a Telegram badge in the UI
-2. Send a message to the bot on your phone
-3. The bot responds using the agent's personality, tools, and memory
-4. The platform's **Monitor** page shows the conversation in real-time
-5. If the Telegram agent is part of a workflow, messages can trigger workflow execution
-
-## Demo Video
-
-> Link to recorded demo will be added here showing:
-> - Creating agents via the UI
-> - Building a workflow with the visual editor
-> - Running the dev pipeline template end-to-end
-> - Chatting with an agent via Telegram
-> - Viewing execution history and message trails
-
 ## Adding a New Workflow Template
 
 1. **Create agents** via the API (`POST /api/v1/agents`) or the Agents page in the UI
@@ -257,17 +254,6 @@ OpenClaw reads the token on startup and connects to Telegram via long-polling.
    ```
 4. The template appears on the **Templates** page — users can clone and customize it
 
-## Adding a New Messaging Channel
-
-OpenClaw natively supports 20+ channels. To add a new one:
-
-1. **Add channel credentials** to the OpenClaw config (`openclaw-data/config/openclaw.json`) — refer to [OpenClaw channel docs](https://github.com/openclaw/openclaw) for the format
-2. **Restart OpenClaw**: `docker compose restart openclaw`
-3. **Update the agent's channels** in the platform (add the channel name to the agent's channels array via UI or API)
-4. The platform's **Monitor** page automatically displays messages from the new channel
-
-Supported channels include: Telegram, Slack, Discord, WhatsApp, SMS, Email, WebChat, and more.
-
 ## Key Metrics
 
 | Metric | Value |
@@ -281,7 +267,7 @@ Supported channels include: Telegram, Slack, Discord, WhatsApp, SMS, Email, WebC
 ## Project Structure
 
 ```
-yuno-agent-platform/
+YunoAgentFactory/
 ├── docker-compose.yml          # All 4 services
 ├── setup.sh                    # One-command bootstrap
 ├── .env.example                # Environment template
@@ -294,13 +280,14 @@ yuno-agent-platform/
 │   ├── alembic/                # Database migrations
 │   ├── app/
 │   │   ├── main.py             # FastAPI app with lifespan, CORS
+│   │   ├── auth.py             # Basic Auth middleware
 │   │   ├── config.py           # Settings from env vars
 │   │   ├── database.py         # Async engine + session factory
 │   │   ├── seed.py             # Template seeding on startup
 │   │   ├── models/             # SQLAlchemy ORM models
 │   │   ├── schemas/            # Pydantic request/response schemas
-│   │   ├── routers/            # API endpoints (agents, workflows)
-│   │   ├── services/           # Business logic (orchestration, OpenClaw client)
+│   │   ├── routers/            # API endpoints (agents, workflows, executions)
+│   │   ├── services/           # Business logic (orchestration, OpenClaw client, Telegram)
 │   │   └── websocket/          # WebSocket monitor endpoint
 │   └── tests/                  # pytest + pytest-asyncio test suite
 │
@@ -309,9 +296,14 @@ yuno-agent-platform/
 │   ├── package.json
 │   ├── src/
 │   │   ├── components/         # React components (workflow builder, agents, monitor)
-│   │   ├── pages/              # Route-level pages
+│   │   │   ├── ui/             # shadcn/ui base components
+│   │   │   ├── executions/     # Execution detail, step timeline, step modal
+│   │   │   ├── layout/         # Sidebar navigation
+│   │   │   ├── AuthGuard.tsx   # Route protection
+│   │   │   └── ...
+│   │   ├── pages/              # Route-level pages (login, agents, workflows, monitor)
 │   │   ├── stores/             # Zustand state management
-│   │   └── lib/                # API client, WebSocket client, utilities
+│   │   └── lib/                # API client, WebSocket client, auth utilities
 │
 └── openclaw-data/
     ├── config/                 # OpenClaw configuration

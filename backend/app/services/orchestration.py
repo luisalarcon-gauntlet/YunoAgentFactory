@@ -332,15 +332,20 @@ class OrchestrationEngine:
         edges = [e for e in graph["edges"] if e["source"] == source_node_id]
         next_nodes: list[str] = []
         default_targets: list[str] = []
+        upper_output = output.upper()
+        has_approved = "APPROVED" in upper_output
+        has_rejected = "REJECTED" in upper_output
 
         for edge in edges:
             condition = edge.get("data", {}).get("condition", "always")
 
             if condition == "always":
                 next_nodes.append(edge["target"])
-            elif condition == "approved" and "APPROVED" in output.upper():
+            elif condition == "approved" and has_approved:
+                # When both APPROVED and REJECTED appear, prioritize approved
+                # (the final verdict is what matters)
                 next_nodes.append(edge["target"])
-            elif condition == "rejected" and "REJECTED" in output.upper():
+            elif condition == "rejected" and has_rejected and not has_approved:
                 next_nodes.append(edge["target"])
             elif condition.startswith("contains:"):
                 keyword = condition.split(":", 1)[1]

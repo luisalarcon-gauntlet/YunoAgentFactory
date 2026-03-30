@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { ExecutionStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useMonitorStore } from "@/stores/monitor-store";
+import MarkdownContent from "@/components/ui/markdown-content";
 
 interface StepTimelineProps {
   steps: ExecutionStep[];
@@ -247,14 +248,12 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                         </button>
                         <CopyButton text={step.output_data} />
                       </div>
-                      <p className="text-xs text-foreground/90 whitespace-pre-wrap break-words leading-relaxed">
-                        {step.output_data}
-                      </p>
+                      <MarkdownContent content={step.output_data} />
                     </div>
                   ) : (
                     <div className="bg-muted/30 rounded px-2 py-1">
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {step.output_data.slice(0, 200)}
+                      <p className="text-xs text-muted-foreground line-clamp-3">
+                        {step.output_data.slice(0, 300)}
                         {hasLongOutput && "..."}
                       </p>
                       {hasLongOutput && (

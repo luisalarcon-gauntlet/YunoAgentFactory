@@ -1,10 +1,26 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { getCredentials, clearCredentials } from "./auth";
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const authHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const creds = getCredentials();
+  if (creds) {
+    authHeaders["Authorization"] = `Basic ${creds}`;
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: { ...authHeaders, ...options?.headers },
   });
+
+  if (res.status === 401) {
+    clearCredentials();
+    window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   if (!res.ok) {
     const error = await res.text().catch(() => "Request failed");
     throw new Error(`${res.status}: ${error}`);
@@ -160,9 +176,13 @@ export const api = {
       request<void>(`/api/v1/agents/${id}`, { method: "DELETE" }),
     workspaceFiles: (id: string) =>
       request<WorkspaceFile[]>(`/api/v1/agents/${id}/workspace/files`),
-    workspaceFileContent: (id: string, filepath: string) =>
-      fetch(`${API_URL}/api/v1/agents/${id}/workspace/files/${filepath}`)
-        .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`)))),
+    workspaceFileContent: (id: string, filepath: string) => {
+      const headers: Record<string, string> = {};
+      const creds = getCredentials();
+      if (creds) headers["Authorization"] = `Basic ${creds}`;
+      return fetch(`${API_URL}/api/v1/agents/${id}/workspace/files/${filepath}`, { headers })
+        .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`))));
+    },
   },
 
   workflows: {

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth import BasicAuthMiddleware
 from app.database import async_session_factory
 from app.routers import agents, executions, runs, workflows
 from app.seed import seed_templates
@@ -39,6 +40,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(BasicAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

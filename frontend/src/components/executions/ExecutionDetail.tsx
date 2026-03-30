@@ -6,6 +6,7 @@ import StepTimeline from "./StepTimeline";
 import StepDetailModal from "./StepDetailModal";
 import { cn } from "@/lib/utils";
 import { useMonitorStore } from "@/stores/monitor-store";
+import MarkdownContent from "@/components/ui/markdown-content";
 
 interface ExecutionDetailProps {
   execution: Execution;
@@ -75,9 +76,9 @@ function EventTimeline({ events }: { events: AgentEvent[] }) {
               </span>
             </div>
             {event.message && event.event_type !== "started" && event.event_type !== "completed" && (
-              <p className="text-xs text-foreground/70 mt-1 whitespace-pre-wrap break-words line-clamp-4">
-                {event.message}
-              </p>
+              <div className="mt-1">
+                <MarkdownContent content={event.message} />
+              </div>
             )}
           </div>
         </div>
@@ -181,9 +182,13 @@ function ConversationView({ steps }: { steps: ExecutionStep[] }) {
                   </p>
                 ) : output ? (
                   <>
-                    <p className="text-xs text-foreground/85 whitespace-pre-wrap break-words leading-relaxed">
-                      {isLong && !isExpanded ? output.slice(0, 400) + "..." : output}
-                    </p>
+                    {isLong && !isExpanded ? (
+                      <p className="text-xs text-foreground/85 whitespace-pre-wrap break-words leading-relaxed">
+                        {output.slice(0, 400)}...
+                      </p>
+                    ) : (
+                      <MarkdownContent content={output} />
+                    )}
                     {isLong && (
                       <button
                         onClick={() => toggleBubble(step.id)}
@@ -292,7 +297,7 @@ function LiveStreamPanel({ executionId }: { executionId: string }) {
                 </span>
               )}
             </div>
-            <p className="text-xs text-foreground/80 whitespace-pre-wrap break-words leading-relaxed max-h-32 overflow-y-auto">
+            <p className="text-xs text-foreground/80 whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto">
               {delta.text}
             </p>
           </div>
@@ -322,6 +327,17 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
   const badge = statusBadge[execution.status] ?? statusBadge.pending;
   const totalTokens = steps?.reduce((sum, s) => sum + (Number(s.token_count) || 0), 0) ?? 0;
   const totalCost = steps?.reduce((sum, s) => sum + (Number(s.cost_usd) || 0), 0) ?? 0;
+
+  // Extract live app URL from the last completed step's output (port range 9000-9099)
+  const liveAppUrl = (() => {
+    if (!steps || steps.length === 0) return null;
+    const completedSteps = steps.filter((s) => s.status === "completed" && s.output_data);
+    for (let i = completedSteps.length - 1; i >= 0; i--) {
+      const match = completedSteps[i].output_data?.match(/https?:\/\/[\w.\-]+:9\d{3}\b[^\s)"]*/);
+      if (match) return match[0];
+    }
+    return null;
+  })();
 
   return (
     <div className="flex flex-col h-full">
@@ -396,6 +412,23 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           <p className="text-sm font-semibold">${totalCost.toFixed(4)}</p>
         </div>
       </div>
+
+      {/* Live App Link */}
+      {liveAppUrl && execution.status === "completed" && (
+        <div className="mx-4 mt-3">
+          <a
+            href={liveAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+            Open Live App
+          </a>
+        </div>
+      )}
 
       {/* Error */}
       {execution.error_message && (

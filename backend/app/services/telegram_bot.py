@@ -10,6 +10,7 @@ import os
 import httpx
 
 from app.database import async_session_factory
+from app.services.telegram_auth import check_pin
 from app.services.telegram_commands import handle_command
 
 logger = logging.getLogger(__name__)
@@ -117,6 +118,12 @@ class TelegramBot:
     async def _handle_message(self, chat_id: str, text: str) -> None:
         """Process an incoming message and reply."""
         try:
+            # PIN auth check — blocks unauthorized users before any command processing
+            auth_response = check_pin(chat_id, text)
+            if auth_response is not None:
+                await self._send_reply(chat_id, auth_response)
+                return
+
             async with async_session_factory() as session:
                 response = await handle_command(session, text, chat_id=chat_id)
 

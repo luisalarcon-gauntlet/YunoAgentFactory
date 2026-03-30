@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "./components/layout/AppShell";
+import AuthGuard from "./components/AuthGuard";
+import LoginPage from "./pages/LoginPage";
 import AgentsPage from "./pages/AgentsPage";
 import WorkflowBuilderPage from "./pages/WorkflowBuilderPage";
 import ExecutionsPage from "./pages/ExecutionsPage";
@@ -10,7 +12,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<AppShell />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          element={
+            <AuthGuard>
+              <AppShell />
+            </AuthGuard>
+          }
+        >
           <Route path="/" element={<Navigate to="/agents" replace />} />
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/workflows/:id?" element={<WorkflowBuilderPage />} />

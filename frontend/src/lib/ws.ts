@@ -45,8 +45,13 @@ class WebSocketClient {
   private _isConnected = false;
 
   constructor() {
-    const wsBase = (import.meta.env.VITE_WS_URL || "ws://localhost:8000").replace(/\/$/, "");
-    this.url = `${wsBase}/ws/monitor`;
+    const wsBase = import.meta.env.VITE_WS_URL;
+    if (wsBase) {
+      this.url = `${wsBase.replace(/\/$/, "")}/ws/monitor`;
+    } else {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      this.url = `${proto}//${window.location.host}/ws/monitor`;
+    }
   }
 
   get isConnected(): boolean {

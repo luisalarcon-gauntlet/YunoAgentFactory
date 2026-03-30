@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { clearCredentials } from "@/lib/auth";
 
 const navItems = [
   { to: "/agents", label: "Agents", icon: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" },
@@ -11,6 +12,7 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const navigate = useNavigate();
   const [isDark, setIsDark] = useState(
     () => document.documentElement.classList.contains("dark")
   );
@@ -59,7 +61,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="p-2 border-t border-border">
+      <div className="p-2 border-t border-border space-y-1">
         <button
           onClick={() => setIsDark(!isDark)}
           className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
@@ -79,6 +81,25 @@ export default function Sidebar() {
             )}
           </svg>
           {isDark ? "Light Mode" : "Dark Mode"}
+        </button>
+        <button
+          onClick={() => {
+            clearCredentials();
+            navigate("/login");
+          }}
+          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors w-full"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="w-5 h-5"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+          </svg>
+          Sign Out
         </button>
       </div>
     </aside>
