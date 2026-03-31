@@ -78,7 +78,7 @@ export default function StepDetailModal({ step, onClose }: StepDetailModalProps)
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-4 gap-3 px-5 py-3 border-b border-border">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 py-3 border-b border-border">
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Duration</p>
             <p className="text-sm font-semibold mt-0.5">

@@ -67,19 +67,19 @@ export default function RecentRunsList({ runs }: Props) {
   }
 
   return (
-    <div className="overflow-y-auto max-h-[calc(100vh-500px)] space-y-1">
+    <div className="overflow-y-auto max-h-[calc(100vh-400px)] md:max-h-[calc(100vh-500px)] space-y-1">
       {runs.map((run) => {
         const config = statusConfig[run.status] ?? statusConfig.pending;
         return (
           <div
             key={run.id}
             onClick={() => navigate(`/runs?execution=${run.id}`)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border bg-card/30 hover:bg-card/60 cursor-pointer transition-colors"
+            className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3 px-3 py-2 rounded-lg border border-border bg-card/30 hover:bg-card/60 cursor-pointer transition-colors"
           >
             {/* Status badge */}
             <span
               className={cn(
-                "text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase",
+                "text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase shrink-0",
                 config.bg,
                 config.text
               )}
@@ -88,22 +88,22 @@ export default function RecentRunsList({ runs }: Props) {
             </span>
 
             {/* Workflow name */}
-            <span className="text-xs font-medium flex-1 truncate">
+            <span className="text-xs font-medium flex-1 truncate min-w-0">
               {run.workflow_name || "Workflow"}
             </span>
 
             {/* Source */}
-            <span className="text-[9px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted/30">
+            <span className="text-[9px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted/30 hidden sm:inline">
               {run.source}
             </span>
 
             {/* Duration */}
-            <span className="text-[10px] text-muted-foreground w-12 text-right">
+            <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0">
               {formatDuration(run.started_at, run.completed_at)}
             </span>
 
             {/* Time ago */}
-            <span className="text-[10px] text-muted-foreground w-14 text-right">
+            <span className="text-[10px] text-muted-foreground w-14 text-right shrink-0 hidden sm:inline">
               {timeAgo(run.created_at)}
             </span>
           </div>

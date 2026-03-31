@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Execution } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import ExecutionList from "@/components/executions/ExecutionList";
 import ExecutionDetail from "@/components/executions/ExecutionDetail";
 import ExecutionErrorBoundary from "@/components/executions/ExecutionErrorBoundary";
@@ -30,9 +31,12 @@ export default function ExecutionsPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-48px)] -m-6">
-      {/* Left: Execution list */}
-      <div className="w-80 border-r border-border bg-card/30 flex flex-col overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-48px)] -m-3 -mt-14 md:-m-6">
+      {/* Left: Execution list — full width on mobile when no selection, side panel on desktop */}
+      <div className={cn(
+        "md:w-80 border-r border-border bg-card/30 flex flex-col overflow-hidden",
+        selectedExecution ? "hidden md:flex" : "flex"
+      )}>
         <div className="px-4 py-3 border-b border-border">
           <h2 className="text-sm font-semibold">Execution Runs</h2>
           <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -51,7 +55,10 @@ export default function ExecutionsPage() {
       </div>
 
       {/* Right: Detail view */}
-      <div className="flex-1 overflow-hidden">
+      <div className={cn(
+        "flex-1 overflow-hidden",
+        selectedExecution ? "flex flex-col" : "hidden md:block"
+      )}>
         {selectedExecution ? (
           <ExecutionErrorBoundary
             key={selectedExecution.id}

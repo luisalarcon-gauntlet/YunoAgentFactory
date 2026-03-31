@@ -138,7 +138,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[90vh] rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden">
+      <div className="w-full max-w-lg max-h-[90vh] mx-4 md:mx-0 rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <h2 className="text-sm font-semibold">

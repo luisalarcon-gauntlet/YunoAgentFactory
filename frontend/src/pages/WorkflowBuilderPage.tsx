@@ -241,29 +241,29 @@ function WorkflowBuilderInner() {
   const saveLabel = saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Error" : "Save";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-0px)] -m-6">
+    <div className="flex flex-col h-[calc(100vh-0px)] -m-3 -mt-14 md:-m-6 md:-mt-6">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/80 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 md:px-4 py-2 border-b border-border bg-card/80 backdrop-blur-sm z-10 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
           <input
             type="text"
             value={workflowName}
             onChange={(e) => setWorkflowName(e.target.value)}
-            className="bg-transparent text-sm font-semibold border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-64"
+            className="bg-transparent text-sm font-semibold border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-full sm:w-48 md:w-64"
             placeholder="Workflow name"
           />
           <input
             type="text"
             value={workflowDesc}
             onChange={(e) => setWorkflowDesc(e.target.value)}
-            className="bg-transparent text-xs text-muted-foreground border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-48"
+            className="bg-transparent text-xs text-muted-foreground border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-full sm:w-36 md:w-48 hidden sm:block"
             placeholder="Description (optional)"
           />
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground hidden md:inline">
             {nodes.length} node{nodes.length !== 1 ? "s" : ""} · {edges.length} edge{edges.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleSave}
             disabled={saveMutation.isPending}
@@ -283,8 +283,10 @@ function WorkflowBuilderInner() {
 
       {/* Main area: palette + canvas + config panel */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Agent palette */}
-        <AgentPalette />
+        {/* Left: Agent palette (hidden on mobile — drag-drop requires desktop) */}
+        <div className="hidden md:flex">
+          <AgentPalette />
+        </div>
 
         {/* Center: Canvas */}
         <div
@@ -307,16 +309,24 @@ function WorkflowBuilderInner() {
           />
         </div>
 
-        {/* Right: Node config panel */}
+        {/* Right: Node config panel — overlay on mobile, inline on desktop */}
         {selectedNode && (
-          <NodeConfigPanel
-            node={selectedNode as Node<AgentNodeData>}
-            edges={edges}
-            onUpdateNode={onUpdateNode}
-            onUpdateEdge={onUpdateEdge}
-            onClose={() => setSelectedNode(null)}
-            onDeleteNode={onDeleteNode}
-          />
+          <>
+            <div
+              className="md:hidden fixed inset-0 z-40 bg-black/50"
+              onClick={() => setSelectedNode(null)}
+            />
+            <div className="fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] md:relative md:inset-auto md:z-auto md:max-w-none">
+              <NodeConfigPanel
+                node={selectedNode as Node<AgentNodeData>}
+                edges={edges}
+                onUpdateNode={onUpdateNode}
+                onUpdateEdge={onUpdateEdge}
+                onClose={() => setSelectedNode(null)}
+                onDeleteNode={onDeleteNode}
+              />
+            </div>
+          </>
         )}
       </div>
 

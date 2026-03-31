@@ -33,7 +33,7 @@ export default function NodeConfigPanel({
   );
 
   return (
-    <div className="w-72 border-l border-border bg-card/60 backdrop-blur-sm flex flex-col overflow-hidden">
+    <div className="w-full md:w-72 h-full border-l border-border bg-card md:bg-card/60 backdrop-blur-sm flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2 border-b border-border flex items-center justify-between">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">

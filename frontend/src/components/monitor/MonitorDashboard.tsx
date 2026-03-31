@@ -31,7 +31,7 @@ export default function MonitorDashboard() {
   const hasActivity = activeExecs.length > 0;
 
   return (
-    <div className="flex flex-col gap-4 h-[calc(100vh-96px)]">
+    <div className="flex flex-col gap-4 h-[calc(100vh-120px)] md:h-[calc(100vh-96px)]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

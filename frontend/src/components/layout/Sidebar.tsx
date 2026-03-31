@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { clearCredentials } from "@/lib/auth";
 
@@ -13,9 +13,16 @@ const navItems = [
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isDark, setIsDark] = useState(
     () => document.documentElement.classList.contains("dark")
   );
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (isDark) {
@@ -27,11 +34,21 @@ export default function Sidebar() {
     }
   }, [isDark]);
 
-  return (
-    <aside className="w-56 border-r border-border bg-card flex flex-col">
-      <div className="p-4 border-b border-border">
-        <h1 className="text-lg font-bold text-primary tracking-tight">Yuno</h1>
-        <p className="text-xs text-muted-foreground">Agent Orchestration</p>
+  const sidebarContent = (
+    <>
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold text-primary tracking-tight">Yuno</h1>
+          <p className="text-xs text-muted-foreground">Agent Orchestration</p>
+        </div>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="md:hidden text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       <nav className="flex-1 p-2 space-y-1">
         {navItems.map((item) => (
@@ -102,6 +119,38 @@ export default function Sidebar() {
           Sign Out
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-3 left-3 z-40 p-2 rounded-md bg-card border border-border text-foreground hover:bg-accent transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-56 border-r border-border bg-card flex-col">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="relative w-64 max-w-[80vw] bg-card flex flex-col z-10">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

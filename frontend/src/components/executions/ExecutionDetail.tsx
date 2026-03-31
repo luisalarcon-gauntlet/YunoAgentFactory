@@ -343,9 +343,17 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={onClose}
+              className="md:hidden text-muted-foreground hover:text-foreground p-1 -ml-1 rounded transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+              </svg>
+            </button>
+            <h3 className="text-sm font-semibold truncate">
               {execution.workflow_name ?? "Execution"}
             </h3>
             <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", badge.bg, badge.text)}>
@@ -394,7 +402,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-4 gap-2 px-4 py-3 border-b border-border">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 px-4 py-3 border-b border-border">
         <div>
           <p className="text-[10px] text-muted-foreground uppercase">Steps</p>
           <p className="text-sm font-semibold">{steps?.length ?? 0}</p>
