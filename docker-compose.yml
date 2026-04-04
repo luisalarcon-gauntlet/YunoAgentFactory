@@ -12,6 +12,10 @@ services:
       # NOTE: /var/www/deployments is NOT read-only because the deployment pipeline
       # agents write built applications here. This is an accepted trade-off.
       - /var/www/deployments:/deployments
+      # WARNING: Docker socket mount grants container-escape-level access to the host.
+      # Required for the deployment pipeline — OpenClaw agents build and run Docker
+      # containers as part of workflow execution. This is an accepted architectural risk.
+      # See SECURITY_AUDIT.md S-01 for details.
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
     group_add:

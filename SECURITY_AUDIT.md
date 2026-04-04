@@ -19,7 +19,8 @@
 The OpenClaw container has direct access to the host's Docker daemon. Any code execution vulnerability in OpenClaw (which is an LLM-driven agent runtime that executes shell commands) gives an attacker full control over all containers and the host filesystem.
 
 **Impact:** Container escape, host compromise, lateral movement to all services.
-**Fix:** Remove the Docker socket mount. If OpenClaw needs container management, use a restricted Docker-in-Docker sidecar or a socket proxy like `tecnativa/docker-socket-proxy` with read-only permissions.
+**Status:** Acknowledged — required for deployment pipeline. OpenClaw agents build and run Docker containers. Comment added to docker-compose.yml documenting the risk.
+**Original Fix Suggestion:** Remove the Docker socket mount. If OpenClaw needs container management, use a restricted Docker-in-Docker sidecar or a socket proxy like `tecnativa/docker-socket-proxy` with read-only permissions.
 
 ---
 

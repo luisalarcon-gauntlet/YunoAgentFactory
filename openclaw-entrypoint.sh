@@ -23,9 +23,9 @@ try {
 if (!config.gateway) config.gateway = {};
 config.gateway.bind = config.gateway.bind || 'lan';
 if (!config.gateway.controlUi) config.gateway.controlUi = {};
-config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = true;
-config.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
-config.gateway.controlUi.allowInsecureAuth = true;
+config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = false;
+config.gateway.controlUi.dangerouslyDisableDeviceAuth = true; // Required for Telegram/device pairing flow
+config.gateway.controlUi.allowInsecureAuth = false;
 if (!config.gateway.controlUi.allowedOrigins) {
   config.gateway.controlUi.allowedOrigins = [
     'http://127.0.0.1:18789',
@@ -65,6 +65,8 @@ if (geminiKey) {
 }
 
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+// Restrict config file permissions (contains API keys)
+fs.chmodSync(configPath, 0o600);
 console.log('Gateway dashboard origins:', JSON.stringify(config.gateway.controlUi.allowedOrigins));
 "
 
