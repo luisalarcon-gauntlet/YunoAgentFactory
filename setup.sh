@@ -17,6 +17,9 @@ fi
 # Create openclaw data directories
 mkdir -p openclaw-data/config openclaw-data/workspace
 
+# Secure .env file permissions (readable only by owner)
+chmod 600 .env
+
 # Build and launch
 docker compose up -d --build
 

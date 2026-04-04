@@ -263,9 +263,13 @@ async def cancel_execution(
 
 # ── Debug endpoints ──
 
+_debug_enabled = os.environ.get("DEBUG_ENDPOINTS_ENABLED", "false").lower() == "true"
+
 
 @debug_router.get("/openclaw-status")
 async def openclaw_status() -> dict:
+    if not _debug_enabled:
+        raise HTTPException(status_code=404, detail="Not found")
     """Check connectivity to the OpenClaw gateway.
 
     Performs full protocol handshake and a test RPC call.
@@ -281,6 +285,8 @@ async def openclaw_status() -> dict:
 @debug_router.get("/openclaw")
 async def openclaw_debug() -> dict:
     """Detailed OpenClaw debug: handshake, RPC test, and session key format."""
+    if not _debug_enabled:
+        raise HTTPException(status_code=404, detail="Not found")
     client = _get_openclaw_client()
     steps: list[dict] = []
 

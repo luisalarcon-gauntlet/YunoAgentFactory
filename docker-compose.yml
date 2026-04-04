@@ -9,6 +9,8 @@ services:
       - ./openclaw-data/config:/home/node/.openclaw
       - ./openclaw-data/workspace:/home/node/workspace
       - ./openclaw-entrypoint.sh:/openclaw-entrypoint.sh:ro
+      # NOTE: /var/www/deployments is NOT read-only because the deployment pipeline
+      # agents write built applications here. This is an accepted trade-off.
       - /var/www/deployments:/deployments
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
@@ -31,8 +33,8 @@ services:
     image: postgres:16-alpine
     container_name: platform-db
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5434}:5432"
+    # No ports mapping — backend connects via internal DNS (postgres:5432).
+    # Use `docker compose exec postgres psql -U platform -d agentplatform` for admin access.
     environment:
       POSTGRES_DB: agentplatform
       POSTGRES_USER: platform
@@ -64,6 +66,10 @@ services:
       LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-yuno-agent-factory}
       LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
       ADMIN_USERS: ${ADMIN_USERS:-}
+      ALLOWED_ORIGINS: "http://localhost:3001,http://${HOST_IP:-localhost}:${FRONTEND_PORT:-3001}"
+      DOCS_ENABLED: ${DOCS_ENABLED:-false}
+      DEBUG_ENDPOINTS_ENABLED: ${DEBUG_ENDPOINTS_ENABLED:-false}
+      AUTH_DISABLED: ${AUTH_DISABLED:-false}
     volumes:
       - ./backend:/app
       - ./openclaw-data/workspace:/openclaw-workspace

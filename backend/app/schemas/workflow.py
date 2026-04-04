@@ -1,12 +1,12 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class WorkflowCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(max_length=200)
+    description: str | None = Field(default=None, max_length=5000)
     graph: dict
     is_template: bool = False
     max_iterations: int = 10
@@ -14,8 +14,8 @@ class WorkflowCreate(BaseModel):
 
 
 class WorkflowUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=5000)
     graph: dict | None = None
     is_template: bool | None = None
     max_iterations: int | None = None

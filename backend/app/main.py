@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -33,17 +34,23 @@ async def lifespan(app: FastAPI):
     await telegram_bot.stop()
 
 
+_docs_enabled = os.environ.get("DOCS_ENABLED", "false").lower() == "true"
 app = FastAPI(
     title="Yuno Agent Orchestration Platform",
     description="AI agent workflow orchestration with visual builder and real-time monitoring",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
 )
 
 app.add_middleware(BasicAuthMiddleware)
+
+_allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3001").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in _allowed_origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

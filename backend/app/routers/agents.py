@@ -226,9 +226,9 @@ async def get_workspace_file(
     if not workspace_dir:
         raise HTTPException(status_code=404, detail="Workspace not found")
 
-    full_path = os.path.normpath(os.path.join(workspace_dir, filepath))
-    # Prevent path traversal
-    if not full_path.startswith(os.path.normpath(workspace_dir)):
+    full_path = os.path.realpath(os.path.join(workspace_dir, filepath))
+    # Prevent path traversal (realpath resolves symlinks)
+    if not full_path.startswith(os.path.realpath(workspace_dir)):
         raise HTTPException(status_code=400, detail="Invalid file path")
 
     if not os.path.isfile(full_path):

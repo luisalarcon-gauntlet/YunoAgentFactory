@@ -1,14 +1,14 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AgentCreate(BaseModel):
-    name: str
-    role: str
-    system_prompt: str
-    model: str = "claude-sonnet-4-20250514"
+    name: str = Field(max_length=200)
+    role: str = Field(max_length=200)
+    system_prompt: str = Field(max_length=50000)
+    model: str = Field(default="claude-sonnet-4-20250514", max_length=200)
     tools: list[str] = []
     channels: list[str] = []
     schedule: dict | None = None
@@ -19,10 +19,10 @@ class AgentCreate(BaseModel):
 
 
 class AgentUpdate(BaseModel):
-    name: str | None = None
-    role: str | None = None
-    system_prompt: str | None = None
-    model: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+    role: str | None = Field(default=None, max_length=200)
+    system_prompt: str | None = Field(default=None, max_length=50000)
+    model: str | None = Field(default=None, max_length=200)
     tools: list[str] | None = None
     channels: list[str] | None = None
     schedule: dict | None = None

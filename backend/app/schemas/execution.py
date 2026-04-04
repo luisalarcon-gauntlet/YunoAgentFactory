@@ -2,12 +2,12 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExecutionCreate(BaseModel):
     workflow_id: uuid.UUID
-    input: str | None = ""
+    input: str | None = Field(default="", max_length=50000)
 
 
 class ExecutionResponse(BaseModel):

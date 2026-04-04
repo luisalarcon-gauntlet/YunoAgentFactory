@@ -6,9 +6,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class RunCreate(BaseModel):
     workflow_id: uuid.UUID
-    source: str = "web"
+    source: str = Field(default="web", max_length=200)
     source_metadata: dict | None = None
-    inputs: str | None = ""
+    inputs: str | None = Field(default="", max_length=50000)
 
 
 class RunResponse(BaseModel):
