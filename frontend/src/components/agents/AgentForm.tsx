@@ -15,7 +15,7 @@ const MODEL_OPTIONS = [
 ];
 
 const TOOL_OPTIONS = ["shell", "file_read", "file_write", "browser", "code_interpreter"];
-const CHANNEL_OPTIONS = ["webchat", "telegram", "slack", "api"];
+const CHANNEL_OPTIONS = ["webchat", "telegram"];
 
 function TagInput({
   label,
@@ -74,8 +74,6 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
   const [tools, setTools] = useState<string[]>([]);
   const [channels, setChannels] = useState<string[]>([]);
   const [skills, setSkills] = useState("");
-  const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scheduleCron, setScheduleCron] = useState("");
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [guardrailMaxTokens, setGuardrailMaxTokens] = useState("4096");
   const [guardrailMaxCost, setGuardrailMaxCost] = useState("1.00");
@@ -89,10 +87,6 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
       setTools(agent.tools);
       setChannels(agent.channels);
       setSkills(agent.skills.join(", "));
-      if (agent.schedule) {
-        setScheduleEnabled(true);
-        setScheduleCron((agent.schedule as Record<string, string>).cron ?? "");
-      }
       setMemoryEnabled((agent.memory as Record<string, boolean>).enabled !== false);
       if (agent.guardrails) {
         setGuardrailMaxTokens(String((agent.guardrails as Record<string, number>).max_tokens ?? 4096));
@@ -111,7 +105,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
         tools,
         channels,
         skills: skills.split(",").map((s) => s.trim()).filter(Boolean),
-        schedule: scheduleEnabled && scheduleCron ? { cron: scheduleCron } : null,
+        schedule: null,
         memory: { enabled: memoryEnabled },
         guardrails: {
           max_tokens: parseInt(guardrailMaxTokens, 10) || 4096,
@@ -220,51 +214,6 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
 
           {/* Channels */}
           <TagInput label="Channels" options={CHANNEL_OPTIONS} selected={channels} onChange={setChannels} />
-
-          {/* Skills */}
-          <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Skills (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={skills}
-              onChange={(e) => setSkills(e.target.value)}
-              className="mt-1 w-full px-3 py-2 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-              placeholder="e.g. python, javascript, devops"
-            />
-          </div>
-
-          {/* Schedule */}
-          <div className="border border-border rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                Schedule
-              </label>
-              <button
-                type="button"
-                onClick={() => setScheduleEnabled(!scheduleEnabled)}
-                className={cn(
-                  "w-8 h-4 rounded-full transition-colors relative",
-                  scheduleEnabled ? "bg-primary" : "bg-muted"
-                )}
-              >
-                <span className={cn(
-                  "absolute left-0 top-0.5 w-3 h-3 rounded-full bg-white transition-transform",
-                  scheduleEnabled ? "translate-x-4" : "translate-x-0.5"
-                )} />
-              </button>
-            </div>
-            {scheduleEnabled && (
-              <input
-                type="text"
-                value={scheduleCron}
-                onChange={(e) => setScheduleCron(e.target.value)}
-                className="mt-2 w-full px-3 py-2 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                placeholder="*/30 * * * * (every 30 min)"
-              />
-            )}
-          </div>
 
           {/* Memory */}
           <div className="border border-border rounded-lg p-3">

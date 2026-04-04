@@ -54,6 +54,17 @@ class WebSocketClient {
     }
   }
 
+  /** Append auth token as query parameter (browser WebSocket can't set headers). */
+  private buildUrl(): string {
+    // yuno_auth stores base64("user:pass") — pass it directly as the token
+    const token = sessionStorage.getItem("yuno_auth");
+    if (token) {
+      const separator = this.url.includes("?") ? "&" : "?";
+      return `${this.url}${separator}token=${encodeURIComponent(token)}`;
+    }
+    return this.url;
+  }
+
   get isConnected(): boolean {
     return this._isConnected;
   }
@@ -62,7 +73,7 @@ class WebSocketClient {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
     try {
-      this.ws = new WebSocket(this.url);
+      this.ws = new WebSocket(this.buildUrl());
 
       this.ws.onopen = () => {
         this._isConnected = true;

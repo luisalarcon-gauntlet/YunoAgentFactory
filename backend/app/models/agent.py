@@ -19,6 +19,8 @@ class Agent(Base):
     tools: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
     channels: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
 
+    # TODO: Implement a scheduler service that evaluates cron expressions
+    # and triggers workflow executions. The DB column is kept for future use.
     schedule: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     memory: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     skills: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
