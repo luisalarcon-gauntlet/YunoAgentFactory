@@ -1,5 +1,4 @@
 import logging
-import os
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
@@ -9,68 +8,18 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import async_session_factory, get_db
+from app.database import get_db
 from app.models.execution import AgentEvent, WorkflowExecution
 from app.models.workflow import Workflow
 from app.schemas.run import AgentEventResponse, RunCreate, RunOutputResponse, RunResponse
-from app.services.openclaw_client import OpenClawWSClient
-from app.services.orchestration import OrchestrationEngine
 from app.services.telegram_commands import handle_command
 from app.services.telegram_notify import notify_run_completed, notify_run_failed, notify_run_started
-from app.services.ws_manager import ws_manager
+from app.services.workflow_runner import run_workflow_background
 
 logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/v1/runs", tags=["runs"])
-
-
-def _get_openclaw_client() -> OpenClawWSClient:
-    ws_url = os.environ.get("OPENCLAW_WS_URL", "ws://openclaw:18789")
-    auth_token = os.environ.get("OPENCLAW_AUTH_TOKEN", "")
-    return OpenClawWSClient(ws_url=ws_url, auth_token=auth_token)
-
-
-async def _run_workflow_background(
-    workflow_id: uuid.UUID, execution_id: uuid.UUID, initial_input: str
-) -> None:
-    openclaw = _get_openclaw_client()
-    async with async_session_factory() as session:
-        try:
-            await openclaw.connect()
-
-            # Send "started" notification
-            execution = await session.get(WorkflowExecution, execution_id)
-            if execution:
-                await notify_run_started(session, execution)
-
-            engine = OrchestrationEngine(session, openclaw, ws_manager)
-            await engine.run_workflow(
-                workflow_id,
-                initial_input=initial_input,
-                execution_id=execution_id,
-            )
-
-            # Refresh execution to get final status
-            await session.refresh(execution)
-            if execution.status == "completed":
-                await notify_run_completed(session, execution)
-            elif execution.status in ("failed", "timed_out"):
-                await notify_run_failed(session, execution)
-
-        except Exception:
-            logger.exception("Background workflow execution failed for %s", workflow_id)
-            try:
-                execution = await session.get(WorkflowExecution, execution_id)
-                if execution and execution.status in ("pending", "running"):
-                    execution.status = "failed"
-                    execution.error_message = "Background task crashed unexpectedly"
-                    await session.commit()
-                    await notify_run_failed(session, execution)
-            except Exception:
-                logger.exception("Failed to mark execution %s as failed", execution_id)
-        finally:
-            await openclaw.disconnect()
 
 
 @router.post("", response_model=RunResponse, status_code=201)
@@ -98,10 +47,13 @@ async def create_run(
         await db.refresh(execution)
 
         background_tasks.add_task(
-            _run_workflow_background,
+            run_workflow_background,
             payload.workflow_id,
             execution.id,
             payload.inputs or "",
+            on_started=notify_run_started,
+            on_completed=notify_run_completed,
+            on_failed=notify_run_failed,
         )
 
         resp = RunResponse.model_validate(execution)

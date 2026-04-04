@@ -61,7 +61,7 @@ interface MonitorState {
   clearEvents: () => void;
 }
 
-const MAX_EVENTS = 200;
+const MAX_EVENTS = 500;
 
 export const useMonitorStore = create<MonitorState>((set, get) => {
   let unsubscribe: (() => void) | null = null;
