@@ -54,13 +54,28 @@ class WebSocketClient {
     }
   }
 
-  /** Append auth token as query parameter (browser WebSocket can't set headers). */
-  private buildUrl(): string {
-    // yuno_auth stores base64("user:pass") — pass it directly as the token
-    const token = sessionStorage.getItem("yuno_auth");
-    if (token) {
+  /** Fetch a one-time ticket from the backend, then build the WS URL. */
+  private async fetchTicket(): Promise<string | null> {
+    try {
+      const token = sessionStorage.getItem("yuno_auth");
+      if (!token) return null;
+      const apiBase = import.meta.env.VITE_API_URL || "";
+      const resp = await fetch(`${apiBase}/api/v1/auth/ws-ticket`, {
+        method: "POST",
+        headers: { Authorization: `Basic ${token}` },
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return data.ticket ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private buildUrl(ticket: string | null): string {
+    if (ticket) {
       const separator = this.url.includes("?") ? "&" : "?";
-      return `${this.url}${separator}token=${encodeURIComponent(token)}`;
+      return `${this.url}${separator}ticket=${encodeURIComponent(ticket)}`;
     }
     return this.url;
   }
@@ -72,36 +87,39 @@ class WebSocketClient {
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
-    try {
-      this.ws = new WebSocket(this.buildUrl());
+    this.fetchTicket().then((ticket) => {
+      if (this.ws?.readyState === WebSocket.OPEN) return;
+      try {
+        this.ws = new WebSocket(this.buildUrl(ticket));
 
-      this.ws.onopen = () => {
-        this._isConnected = true;
-        this.reconnectAttempts = 0;
-        this.notifyHandlers({ type: "execution.started", content: "WebSocket connected" } as MonitorEvent);
-      };
+        this.ws.onopen = () => {
+          this._isConnected = true;
+          this.reconnectAttempts = 0;
+          this.notifyHandlers({ type: "execution.started", content: "WebSocket connected" } as MonitorEvent);
+        };
 
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data) as MonitorEvent;
-          data.timestamp = data.timestamp ?? new Date().toISOString();
-          this.notifyHandlers(data);
-        } catch {
-          // Ignore malformed messages
-        }
-      };
+        this.ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data) as MonitorEvent;
+            data.timestamp = data.timestamp ?? new Date().toISOString();
+            this.notifyHandlers(data);
+          } catch {
+            console.warn("Dropped malformed WebSocket message:", event.data);
+          }
+        };
 
-      this.ws.onclose = () => {
-        this._isConnected = false;
+        this.ws.onclose = () => {
+          this._isConnected = false;
+          this.scheduleReconnect();
+        };
+
+        this.ws.onerror = () => {
+          this._isConnected = false;
+        };
+      } catch {
         this.scheduleReconnect();
-      };
-
-      this.ws.onerror = () => {
-        this._isConnected = false;
-      };
-    } catch {
-      this.scheduleReconnect();
-    }
+      }
+    });
   }
 
   disconnect(): void {

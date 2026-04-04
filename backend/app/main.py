@@ -2,12 +2,16 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.auth import BasicAuthMiddleware
 from app.database import async_session_factory
-from app.routers import agents, executions, runs, workflows
+from app.routers import agents, auth, executions, runs, workflows
 from app.seed import seed_templates
 from app.services.telegram_bot import telegram_bot
 from app.websocket import monitor
@@ -34,6 +38,8 @@ async def lifespan(app: FastAPI):
     await telegram_bot.stop()
 
 
+limiter = Limiter(key_func=get_remote_address)
+
 _docs_enabled = os.environ.get("DOCS_ENABLED", "false").lower() == "true"
 app = FastAPI(
     title="Yuno Agent Orchestration Platform",
@@ -44,6 +50,9 @@ app = FastAPI(
     redoc_url="/redoc" if _docs_enabled else None,
     openapi_url="/openapi.json" if _docs_enabled else None,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(BasicAuthMiddleware)
 
@@ -57,6 +66,7 @@ app.add_middleware(
 )
 
 
+app.include_router(auth.router)
 app.include_router(agents.router)
 app.include_router(workflows.router)
 app.include_router(executions.router)

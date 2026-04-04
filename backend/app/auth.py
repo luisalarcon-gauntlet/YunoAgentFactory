@@ -3,12 +3,14 @@ import logging
 import os
 import secrets
 
+import bcrypt
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
 # Parse ADMIN_USERS env var: "user1:pass1,user2:pass2"
+# Passwords may be plaintext (deprecated) or bcrypt hashes ($2b$...)
 _users: dict[str, str] = {}
 for entry in os.environ.get("ADMIN_USERS", "").split(","):
     entry = entry.strip()
@@ -37,7 +39,21 @@ def _check_credentials(username: str, password: str) -> bool:
     expected = _users.get(username)
     if expected is None:
         return False
-    return secrets.compare_digest(password, expected)
+    # Check bcrypt hash first
+    if expected.startswith("$2b$") or expected.startswith("$2a$"):
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), expected.encode("utf-8"))
+        except (ValueError, TypeError):
+            return False
+    # Fallback: plaintext comparison (deprecated)
+    if secrets.compare_digest(password, expected):
+        logger.warning(
+            "User '%s' authenticated with plaintext password — "
+            "migrate to bcrypt hash in ADMIN_USERS",
+            username,
+        )
+        return True
+    return False
 
 
 class BasicAuthMiddleware(BaseHTTPMiddleware):

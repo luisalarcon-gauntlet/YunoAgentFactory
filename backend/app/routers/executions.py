@@ -2,7 +2,9 @@ import logging
 import os
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +25,7 @@ from app.services.ws_manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/v1/executions", tags=["executions"])
 
 # Debug router for OpenClaw connectivity
@@ -91,7 +94,9 @@ async def list_executions(
 
 
 @router.post("", response_model=ExecutionResponse, status_code=201)
+@limiter.limit("10/minute")
 async def trigger_execution(
+    request: Request,
     payload: ExecutionCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),

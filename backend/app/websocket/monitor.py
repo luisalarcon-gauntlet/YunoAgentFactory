@@ -5,6 +5,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.auth import _check_credentials, _users
 from app.services.ws_manager import ws_manager
+from app.services.ws_tickets import validate_and_consume_ticket
 
 logger = logging.getLogger(__name__)
 
@@ -12,11 +13,19 @@ router = APIRouter()
 
 
 def _authenticate_ws(websocket: WebSocket) -> bool:
-    """Check Basic auth from Authorization header or 'token' query parameter."""
+    """Authenticate WebSocket via ticket (preferred) or Basic auth header."""
     if not _users:
-        return True  # No users configured — auth disabled
+        return True  # Auth explicitly disabled
 
-    # Try Authorization header
+    # Preferred: one-time ticket from POST /api/v1/auth/ws-ticket
+    ticket = websocket.query_params.get("ticket", "")
+    if ticket:
+        if validate_and_consume_ticket(ticket):
+            return True
+        logger.warning("Invalid or expired WebSocket ticket")
+        return False
+
+    # Fallback: Authorization header (non-browser clients)
     auth_header = websocket.headers.get("authorization", "")
     if auth_header.startswith("Basic "):
         try:
@@ -27,13 +36,14 @@ def _authenticate_ws(websocket: WebSocket) -> bool:
         except Exception:
             pass
 
-    # Try query parameter (for browser WebSocket which can't set headers)
+    # Legacy: token query param (deprecated — use ticket instead)
     token = websocket.query_params.get("token", "")
     if token:
         try:
             decoded = base64.b64decode(token).decode("utf-8")
             username, password = decoded.split(":", 1)
             if _check_credentials(username, password):
+                logger.warning("WebSocket connected with legacy token param — migrate to ticket-based auth")
                 return True
         except Exception:
             pass

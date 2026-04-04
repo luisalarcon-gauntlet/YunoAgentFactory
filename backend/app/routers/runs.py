@@ -2,7 +2,9 @@ import logging
 import os
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +21,7 @@ from app.services.ws_manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/v1/runs", tags=["runs"])
 
 
@@ -71,7 +74,9 @@ async def _run_workflow_background(
 
 
 @router.post("", response_model=RunResponse, status_code=201)
+@limiter.limit("10/minute")
 async def create_run(
+    request: Request,
     payload: RunCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
