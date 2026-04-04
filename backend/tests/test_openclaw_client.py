@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services.openclaw_client import AgentResponse, OpenClawWSClient
+from app.services.openclaw_client import AgentError, AgentResponse, OpenClawWSClient
 
 
 async def test_client_handshake():
@@ -290,6 +290,170 @@ async def test_build_session_key():
     client = OpenClawWSClient(ws_url="ws://test:18789", auth_token="tok")
     assert client.build_session_key("my-coder") == "agent:my-coder:main"
     assert client.build_session_key("test-agent") == "agent:test-agent:main"
+
+
+async def test_send_and_wait_raises_on_agent_error():
+    """send_and_wait should raise AgentError when the agent returns error state."""
+    client = OpenClawWSClient(ws_url="ws://test:18789", auth_token="tok")
+    mock_ws = AsyncMock()
+    client.ws = mock_ws
+    client._connected = True
+
+    async def fake_send(data):
+        frame = json.loads(data)
+        req_id = frame["id"]
+        if req_id in client._pending:
+            client._pending[req_id].set_result({})
+
+        # Simulate agent error event
+        for listener in client._event_listeners.get("chat", []):
+            await listener({
+                "type": "event", "event": "chat",
+                "payload": {
+                    "sessionKey": "agent:test:main",
+                    "state": "error",
+                    "error": "Model returned invalid response",
+                },
+            })
+
+    mock_ws.send = fake_send
+    with pytest.raises(AgentError, match="Model returned invalid response"):
+        await client.send_and_wait(
+            session_key="agent:test:main", message="Test", timeout=5, max_retries=1
+        )
+
+
+async def test_send_and_wait_raises_on_aborted():
+    """send_and_wait should raise AgentError when the agent is aborted."""
+    client = OpenClawWSClient(ws_url="ws://test:18789", auth_token="tok")
+    mock_ws = AsyncMock()
+    client.ws = mock_ws
+    client._connected = True
+
+    async def fake_send(data):
+        frame = json.loads(data)
+        req_id = frame["id"]
+        if req_id in client._pending:
+            client._pending[req_id].set_result({})
+
+        for listener in client._event_listeners.get("chat", []):
+            await listener({
+                "type": "event", "event": "chat",
+                "payload": {
+                    "sessionKey": "agent:test:main",
+                    "state": "aborted",
+                    "message": "User cancelled",
+                },
+            })
+
+    mock_ws.send = fake_send
+    with pytest.raises(AgentError):
+        await client.send_and_wait(
+            session_key="agent:test:main", message="Test", timeout=5, max_retries=1
+        )
+
+
+async def test_send_and_wait_retries_on_overloaded_error():
+    """send_and_wait should retry transient overloaded errors with backoff."""
+    client = OpenClawWSClient(ws_url="ws://test:18789", auth_token="tok")
+    mock_ws = AsyncMock()
+    client.ws = mock_ws
+    client._connected = True
+
+    call_count = 0
+
+    async def fake_send(data):
+        nonlocal call_count
+        frame = json.loads(data)
+        req_id = frame["id"]
+        if frame["method"] != "agent":
+            return
+        if req_id in client._pending:
+            client._pending[req_id].set_result({})
+
+        call_count += 1
+        if call_count < 3:
+            # First two attempts return overloaded error
+            for listener in client._event_listeners.get("chat", []):
+                await listener({
+                    "type": "event", "event": "chat",
+                    "payload": {
+                        "sessionKey": "agent:test:main",
+                        "state": "error",
+                        "error": "The AI service is temporarily overloaded. Please try again in a moment.",
+                    },
+                })
+        else:
+            # Third attempt succeeds
+            for listener in client._event_listeners.get("chat", []):
+                await listener({
+                    "type": "event", "event": "chat",
+                    "payload": {
+                        "sessionKey": "agent:test:main",
+                        "state": "final",
+                        "message": {
+                            "role": "assistant",
+                            "content": [{"type": "text", "text": "APPROVED: looks good"}],
+                        },
+                    },
+                })
+
+    mock_ws.send = fake_send
+
+    # Patch sleep to avoid waiting in tests
+    with patch("app.services.openclaw_client.asyncio.sleep", new_callable=AsyncMock):
+        response = await client.send_and_wait(
+            session_key="agent:test:main", message="Test", timeout=5, max_retries=3
+        )
+
+    assert response.text == "APPROVED: looks good"
+    assert call_count == 3
+
+
+async def test_send_and_wait_no_retry_on_non_transient_error():
+    """Non-transient errors should raise immediately without retrying."""
+    client = OpenClawWSClient(ws_url="ws://test:18789", auth_token="tok")
+    mock_ws = AsyncMock()
+    client.ws = mock_ws
+    client._connected = True
+
+    call_count = 0
+
+    async def fake_send(data):
+        nonlocal call_count
+        frame = json.loads(data)
+        req_id = frame["id"]
+        if frame["method"] != "agent":
+            return
+        if req_id in client._pending:
+            client._pending[req_id].set_result({})
+
+        call_count += 1
+        for listener in client._event_listeners.get("chat", []):
+            await listener({
+                "type": "event", "event": "chat",
+                "payload": {
+                    "sessionKey": "agent:test:main",
+                    "state": "error",
+                    "error": "Invalid API key",
+                },
+            })
+
+    mock_ws.send = fake_send
+    with pytest.raises(AgentError, match="Invalid API key"):
+        await client.send_and_wait(
+            session_key="agent:test:main", message="Test", timeout=5, max_retries=3
+        )
+    assert call_count == 1
+
+
+async def test_agent_error_retryable_flag():
+    """AgentError should correctly set the retryable flag."""
+    err_retryable = AgentError("temporarily overloaded", retryable=True)
+    assert err_retryable.retryable is True
+
+    err_permanent = AgentError("invalid key", retryable=False)
+    assert err_permanent.retryable is False
 
 
 async def test_agent_response_dataclass():
