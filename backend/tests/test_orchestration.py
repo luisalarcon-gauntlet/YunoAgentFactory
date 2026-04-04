@@ -163,6 +163,94 @@ async def test_max_iterations_safety(db_session, mock_openclaw, mock_ws_manager)
     assert "max iterations" in execution.error_message.lower()
 
 
+async def test_cooperative_cancellation(db_session, mock_openclaw, mock_ws_manager):
+    """Cancelling an execution should prevent subsequent steps from running."""
+    from app.services.orchestration import OrchestrationEngine
+
+    agents = [_make_agent(db_session, f"Agent {i}") for i in range(3)]
+    await db_session.flush()
+    wf = _make_linear_workflow(db_session, [a.id for a in agents])
+    await db_session.flush()
+
+    call_count = 0
+
+    async def side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            # After first step completes, cancel the execution
+            # (simulates external cancel while engine is running)
+            from sqlalchemy import select
+            result = await db_session.execute(
+                select(WorkflowExecution).where(WorkflowExecution.workflow_id == wf.id)
+            )
+            execution = result.scalars().first()
+            if execution:
+                execution.status = "cancelled"
+                await db_session.flush()
+        return AgentResponse(text=f"Output {call_count}", token_count=50, cost_usd=0.005)
+
+    mock_openclaw.send_and_wait.side_effect = side_effect
+
+    engine = OrchestrationEngine(db_session, mock_openclaw, mock_ws_manager)
+    execution_id = await engine.run_workflow(wf.id, initial_input="Test cancel")
+
+    execution = await db_session.get(WorkflowExecution, execution_id)
+    assert execution.status == "cancelled"
+    # Only 1 step should have executed (the second step sees cancelled status)
+    assert mock_openclaw.send_and_wait.call_count == 1
+
+
+async def test_guardrail_token_limit(db_session, mock_openclaw, mock_ws_manager):
+    """Execution should stop when agent's token guardrail is exceeded."""
+    from app.services.orchestration import OrchestrationEngine
+
+    agent = Agent(
+        id=uuid.uuid4(),
+        name="Limited Agent",
+        role="Test guardrails",
+        system_prompt="You test limits.",
+        model="claude-sonnet-4-20250514",
+        tools=[],
+        channels=[],
+        memory={},
+        skills=[],
+        interaction_rules={},
+        guardrails={"max_tokens": 100},
+        openclaw_session_key="session-limited",
+    )
+    db_session.add(agent)
+
+    # Two-step workflow with same agent
+    nodes = [
+        {"id": "node-1", "type": "agentNode", "position": {"x": 0, "y": 0},
+         "data": {"agent_id": str(agent.id), "label": "Step 1", "config": {"task_instruction": "Do step 1"}}},
+        {"id": "node-2", "type": "agentNode", "position": {"x": 300, "y": 0},
+         "data": {"agent_id": str(agent.id), "label": "Step 2", "config": {"task_instruction": "Do step 2"}}},
+    ]
+    edges = [
+        {"id": "e1-2", "source": "node-1", "target": "node-2", "data": {"condition": "always", "label": "Next"}},
+    ]
+    wf = Workflow(id=uuid.uuid4(), name="Guardrail Test", graph={"nodes": nodes, "edges": edges},
+                  max_iterations=10, timeout_seconds=300)
+    db_session.add(wf)
+    await db_session.flush()
+
+    mock_openclaw.send_and_wait.side_effect = [
+        AgentResponse(text="First output", token_count=150, cost_usd=0.01),
+        AgentResponse(text="Should not run", token_count=50, cost_usd=0.005),
+    ]
+
+    engine = OrchestrationEngine(db_session, mock_openclaw, mock_ws_manager)
+    execution_id = await engine.run_workflow(wf.id, initial_input="Test limits")
+
+    execution = await db_session.get(WorkflowExecution, execution_id)
+    assert execution.status == "failed"
+    assert "token limit exceeded" in execution.error_message.lower()
+    # Only 1 call — second step was blocked by guardrail
+    assert mock_openclaw.send_and_wait.call_count == 1
+
+
 async def test_model_passed_to_openclaw(db_session, mock_openclaw, mock_ws_manager):
     """Agent's configured model should be passed through to the OpenClaw API call."""
     from app.services.orchestration import OrchestrationEngine

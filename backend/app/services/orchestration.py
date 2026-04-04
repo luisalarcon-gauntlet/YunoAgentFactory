@@ -83,6 +83,20 @@ class OrchestrationEngine:
                     )
                     break
 
+                # Cooperative cancellation: check status without overwriting
+                # in-memory fields (iteration_count, current_node_id, etc.)
+                from sqlalchemy import select as sa_select
+                status_result = await self.db.execute(
+                    sa_select(WorkflowExecution.status).where(
+                        WorkflowExecution.id == execution.id
+                    )
+                )
+                current_status = status_result.scalar_one()
+                if current_status == "cancelled":
+                    execution.status = "cancelled"
+                    logger.info("Execution %s was cancelled", execution.id)
+                    break
+
                 current_node_id, input_data = queue.pop(0)
                 node = self._get_node(graph, current_node_id)
                 agent_id = node["data"]["agent_id"]
@@ -93,6 +107,40 @@ class OrchestrationEngine:
                     execution.error_message = f"Agent {agent_id} not found for node {current_node_id}"
                     logger.error("Agent %s not found", agent_id)
                     break
+
+                # Check guardrails before executing
+                guardrails = agent.guardrails or {}
+                max_tokens = guardrails.get("max_tokens") or guardrails.get("max_tokens_per_run")
+                max_cost = guardrails.get("max_cost_usd") or guardrails.get("cost_limit_usd")
+
+                if max_tokens or max_cost:
+                    # Sum tokens/cost from all prior steps in this execution
+                    from sqlalchemy import select as sa_select
+                    prior_result = await self.db.execute(
+                        sa_select(ExecutionStep).where(
+                            ExecutionStep.execution_id == execution.id,
+                            ExecutionStep.status == "completed",
+                        )
+                    )
+                    prior_steps = prior_result.scalars().all()
+                    cumulative_tokens = sum(s.token_count or 0 for s in prior_steps)
+                    cumulative_cost = sum(float(s.cost_usd or 0) for s in prior_steps)
+
+                    if max_tokens and cumulative_tokens >= int(max_tokens):
+                        execution.status = "failed"
+                        execution.error_message = (
+                            f"Token limit exceeded: {cumulative_tokens:,} / {int(max_tokens):,} max"
+                        )
+                        logger.warning("Execution %s hit token guardrail", execution.id)
+                        break
+
+                    if max_cost and cumulative_cost >= float(max_cost):
+                        execution.status = "failed"
+                        execution.error_message = (
+                            f"Cost limit exceeded: ${cumulative_cost:.4f} / ${float(max_cost):.4f} max"
+                        )
+                        logger.warning("Execution %s hit cost guardrail", execution.id)
+                        break
 
                 # Ensure agent has an OpenClaw session
                 await self._ensure_agent_session(agent)

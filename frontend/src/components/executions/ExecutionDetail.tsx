@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Execution, type ExecutionStep, type AgentEvent } from "@/lib/api";
 import { downloadReport } from "@/lib/export-report";
 import StepTimeline from "./StepTimeline";
@@ -310,7 +310,17 @@ function LiveStreamPanel({ executionId }: { executionId: string }) {
 export default function ExecutionDetail({ execution, onClose }: ExecutionDetailProps) {
   const [activeTab, setActiveTab] = useState<Tab>("steps");
   const [selectedStep, setSelectedStep] = useState<ExecutionStep | null>(null);
+  const queryClient = useQueryClient();
   const isLive = execution.status === "running";
+  const isCancellable = execution.status === "running" || execution.status === "pending";
+
+  const cancelMutation = useMutation({
+    mutationFn: () => api.executions.cancel(execution.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["executions"] });
+      queryClient.invalidateQueries({ queryKey: ["execution-steps", execution.id] });
+    },
+  });
 
   const { data: steps, isLoading: stepsLoading } = useQuery({
     queryKey: ["execution-steps", execution.id],
@@ -379,6 +389,16 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           </p>
         </div>
         <div className="flex items-center gap-1">
+          {isCancellable && (
+            <button
+              onClick={() => cancelMutation.mutate()}
+              disabled={cancelMutation.isPending}
+              className="text-xs font-medium px-2.5 py-1 rounded-md bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
+              title="Cancel execution"
+            >
+              {cancelMutation.isPending ? "Cancelling..." : "Cancel"}
+            </button>
+          )}
           {steps && steps.length > 0 && execution.status !== "running" && (
             <button
               onClick={() => downloadReport(execution, steps)}
