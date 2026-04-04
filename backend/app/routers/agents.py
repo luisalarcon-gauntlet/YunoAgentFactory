@@ -10,13 +10,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.agent import Agent
+from app.models.workflow import Workflow
 from app.schemas.agent import AgentCreate, AgentUpdate, AgentResponse
+from app.services.openclaw_sync import OpenClawSync
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 
 WORKSPACE_BASE = os.environ.get("OPENCLAW_WORKSPACE_PATH", "/openclaw-workspace")
+
+
+def _get_sync() -> OpenClawSync:
+    return OpenClawSync(WORKSPACE_BASE)
+
 
 # Files created by OpenClaw itself — not user-generated content
 SYSTEM_FILES = frozenset({
@@ -43,6 +50,14 @@ async def create_agent(payload: AgentCreate, db: AsyncSession = Depends(get_db))
     try:
         agent = Agent(**payload.model_dump())
         db.add(agent)
+        await db.flush()
+
+        try:
+            sync = _get_sync()
+            sync.sync_agent(agent)
+        except Exception:
+            logger.warning("OpenClaw sync failed for new agent '%s'", agent.name, exc_info=True)
+
         await db.commit()
         await db.refresh(agent)
         return AgentResponse.model_validate(agent)
@@ -79,6 +94,12 @@ async def update_agent(
         for field, value in update_data.items():
             setattr(agent, field, value)
 
+        try:
+            sync = _get_sync()
+            sync.sync_agent(agent)
+        except Exception:
+            logger.warning("OpenClaw sync failed for agent '%s'", agent.name, exc_info=True)
+
         await db.commit()
         await db.refresh(agent)
         return AgentResponse.model_validate(agent)
@@ -96,6 +117,31 @@ async def delete_agent(agent_id: uuid.UUID, db: AsyncSession = Depends(get_db)) 
         agent = await db.get(Agent, agent_id)
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
+
+        # Check if any workflows reference this agent
+        result = await db.execute(select(Workflow))
+        workflows = result.scalars().all()
+        referencing = []
+        agent_id_str = str(agent_id)
+        for wf in workflows:
+            graph = wf.graph or {}
+            for node in graph.get("nodes", []):
+                if node.get("data", {}).get("agent_id") == agent_id_str:
+                    referencing.append(wf.name)
+                    break
+        if referencing:
+            names = ", ".join(referencing)
+            raise HTTPException(
+                status_code=409,
+                detail=f"Agent is referenced by workflow(s): {names}. Remove the agent from these workflows first.",
+            )
+
+        try:
+            sync = _get_sync()
+            sync.cleanup_agent(agent)
+        except Exception:
+            logger.warning("OpenClaw cleanup failed for agent '%s'", agent.name, exc_info=True)
+
         await db.delete(agent)
         await db.commit()
         return Response(status_code=204)

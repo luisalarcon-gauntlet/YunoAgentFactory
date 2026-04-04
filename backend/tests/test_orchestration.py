@@ -161,3 +161,53 @@ async def test_max_iterations_safety(db_session, mock_openclaw, mock_ws_manager)
     execution = await db_session.get(WorkflowExecution, execution_id)
     assert execution.status == "timed_out"
     assert "max iterations" in execution.error_message.lower()
+
+
+async def test_model_passed_to_openclaw(db_session, mock_openclaw, mock_ws_manager):
+    """Agent's configured model should be passed through to the OpenClaw API call."""
+    from app.services.orchestration import OrchestrationEngine
+
+    agent = Agent(
+        id=uuid.uuid4(),
+        name="Haiku Agent",
+        role="Test model selection",
+        system_prompt="You test models.",
+        model="claude-haiku-4-20250514",
+        tools=[],
+        channels=[],
+        memory={},
+        skills=[],
+        interaction_rules={},
+        guardrails={},
+        openclaw_session_key="session-haiku-agent",
+    )
+    db_session.add(agent)
+
+    wf = Workflow(
+        id=uuid.uuid4(),
+        name="Model Test",
+        graph={
+            "nodes": [
+                {"id": "node-1", "type": "agentNode", "position": {"x": 0, "y": 0},
+                 "data": {"agent_id": str(agent.id), "label": "Haiku Agent",
+                          "config": {"task_instruction": "Test task"}}}
+            ],
+            "edges": [],
+        },
+        max_iterations=10,
+        timeout_seconds=300,
+    )
+    db_session.add(wf)
+    await db_session.flush()
+
+    mock_openclaw.send_and_wait.return_value = AgentResponse(
+        text="Done", token_count=50, cost_usd=0.001,
+    )
+
+    engine = OrchestrationEngine(db_session, mock_openclaw, mock_ws_manager)
+    await engine.run_workflow(wf.id, initial_input="Test input")
+
+    # Verify the model was passed to send_and_wait
+    mock_openclaw.send_and_wait.assert_called_once()
+    call_kwargs = mock_openclaw.send_and_wait.call_args
+    assert call_kwargs.kwargs.get("model") == "claude-haiku-4-20250514"

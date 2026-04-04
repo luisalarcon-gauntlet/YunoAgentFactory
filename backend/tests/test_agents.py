@@ -119,3 +119,120 @@ async def test_create_agent_validation_missing_name(client):
 async def test_get_nonexistent_agent(client):
     response = await client.get("/api/v1/agents/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
+
+
+async def test_create_agent_calls_sync(client, tmp_path, monkeypatch):
+    """Creating an agent should call OpenClawSync.sync_agent."""
+    monkeypatch.setenv("OPENCLAW_WORKSPACE_PATH", str(tmp_path))
+    # Patch the router's _get_sync to use tmp_path
+    from app.services.openclaw_sync import OpenClawSync
+    from unittest.mock import patch
+
+    sync_instance = OpenClawSync(str(tmp_path))
+    with patch("app.routers.agents._get_sync", return_value=sync_instance):
+        payload = {
+            "name": "Sync Test Agent",
+            "role": "Tests sync",
+            "system_prompt": "You test sync.",
+        }
+        response = await client.post("/api/v1/agents", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["openclaw_workspace"] == "sync-test-agent"
+
+    # Verify workspace files were created
+    import os
+    agent_dir = tmp_path / "sync-test-agent"
+    assert agent_dir.is_dir()
+    assert (agent_dir / "SOUL.md").is_file()
+    assert (agent_dir / "MEMORY.md").is_file()
+
+
+async def test_update_agent_calls_sync(client, tmp_path):
+    """Updating an agent should re-sync workspace files."""
+    from app.services.openclaw_sync import OpenClawSync
+    from unittest.mock import patch
+
+    sync_instance = OpenClawSync(str(tmp_path))
+
+    with patch("app.routers.agents._get_sync", return_value=sync_instance):
+        # Create agent
+        create_resp = await client.post("/api/v1/agents", json={
+            "name": "Update Sync Agent",
+            "role": "Original role",
+            "system_prompt": "Original prompt",
+        })
+        agent_id = create_resp.json()["id"]
+
+        # Update the agent
+        response = await client.put(f"/api/v1/agents/{agent_id}", json={
+            "system_prompt": "Updated prompt",
+        })
+        assert response.status_code == 200
+
+    # Verify SOUL.md was updated
+    soul_path = tmp_path / "update-sync-agent" / "SOUL.md"
+    assert soul_path.is_file()
+    content = soul_path.read_text()
+    assert "Updated prompt" in content
+
+
+async def test_delete_agent_referenced_by_workflow(client, db_session):
+    """Deleting an agent used in a workflow should return 409."""
+    from app.models.workflow import Workflow
+    import uuid
+
+    # Create agent
+    create_resp = await client.post("/api/v1/agents", json={
+        "name": "Referenced Agent",
+        "role": "In a workflow",
+        "system_prompt": "prompt",
+    })
+    agent_id = create_resp.json()["id"]
+
+    # Create a workflow that references this agent
+    wf = Workflow(
+        id=uuid.uuid4(),
+        name="Test Workflow",
+        graph={
+            "nodes": [
+                {"id": "node-1", "type": "agentNode", "position": {"x": 0, "y": 0},
+                 "data": {"agent_id": agent_id, "label": "Agent", "config": {}}}
+            ],
+            "edges": [],
+        },
+    )
+    db_session.add(wf)
+    await db_session.commit()
+
+    # Try to delete the agent
+    response = await client.delete(f"/api/v1/agents/{agent_id}")
+    assert response.status_code == 409
+    assert "Test Workflow" in response.json()["detail"]
+
+
+async def test_delete_agent_calls_cleanup(client, tmp_path):
+    """Deleting an agent should clean up its workspace."""
+    from app.services.openclaw_sync import OpenClawSync
+    from unittest.mock import patch
+
+    sync_instance = OpenClawSync(str(tmp_path))
+
+    with patch("app.routers.agents._get_sync", return_value=sync_instance):
+        # Create agent (which also syncs)
+        create_resp = await client.post("/api/v1/agents", json={
+            "name": "Cleanup Agent",
+            "role": "Will be deleted",
+            "system_prompt": "prompt",
+        })
+        agent_id = create_resp.json()["id"]
+
+        agent_dir = tmp_path / "cleanup-agent"
+        assert agent_dir.is_dir()
+
+        # Delete agent
+        response = await client.delete(f"/api/v1/agents/{agent_id}")
+        assert response.status_code == 204
+
+        # Verify workspace cleaned up
+        assert not agent_dir.exists()

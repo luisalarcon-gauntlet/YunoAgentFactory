@@ -249,6 +249,7 @@ class OrchestrationEngine:
                     message=prompt,
                     timeout=600,
                     on_delta=on_delta,
+                    model=agent.model,
                 )
             finally:
                 heartbeat_task.cancel()

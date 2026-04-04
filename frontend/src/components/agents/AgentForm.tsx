@@ -11,9 +11,7 @@ interface AgentFormProps {
 const MODEL_OPTIONS = [
   "claude-sonnet-4-20250514",
   "claude-opus-4-20250514",
-  "claude-haiku-4-20250506",
-  "gpt-4o",
-  "gpt-4o-mini",
+  "claude-haiku-4-20250514",
 ];
 
 const TOOL_OPTIONS = ["shell", "file_read", "file_write", "browser", "code_interpreter"];

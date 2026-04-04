@@ -15,7 +15,7 @@ class Agent(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     role: Mapped[str] = mapped_column(String(200), nullable=False)
     system_prompt: Mapped[str] = mapped_column(Text, nullable=False)
-    model: Mapped[str] = mapped_column(String(100), nullable=False, default="claude-haiku-4-20250514")
+    model: Mapped[str] = mapped_column(String(100), nullable=False, default="claude-sonnet-4-20250514")
     tools: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
     channels: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
 

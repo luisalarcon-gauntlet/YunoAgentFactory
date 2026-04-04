@@ -1,3 +1,4 @@
+import base64
 import os
 
 import pytest
@@ -13,6 +14,16 @@ TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
     "postgresql+asyncpg://platform:devpassword@postgres:5432/agentplatform_test",
 )
+
+# Build Basic auth header from first configured admin user (or use a test default)
+_admin_users = os.environ.get("ADMIN_USERS", "")
+if _admin_users and ":" in _admin_users.split(",")[0]:
+    _first_user = _admin_users.split(",")[0].strip()
+    _creds = base64.b64encode(_first_user.encode()).decode()
+else:
+    _creds = base64.b64encode(b"test:test").decode()
+
+AUTH_HEADERS = {"Authorization": f"Basic {_creds}"}
 
 
 @pytest_asyncio.fixture
@@ -40,7 +51,11 @@ async def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers=AUTH_HEADERS,
+    ) as c:
         yield c
     app.dependency_overrides.clear()
 

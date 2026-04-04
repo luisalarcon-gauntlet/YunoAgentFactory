@@ -205,6 +205,7 @@ class OpenClawWSClient:
         timeout: float = 120,
         on_delta: Callable[[str], asyncio.coroutines] | None = None,
         max_retries: int = 3,
+        model: str = "",
     ) -> AgentResponse:
         """Send a message to an agent and wait for the complete response.
 
@@ -218,13 +219,14 @@ class OpenClawWSClient:
         Args:
             on_delta: Optional async callback invoked with each streaming text chunk.
             max_retries: Maximum number of retry attempts for transient errors.
+            model: The Claude model to use for this request.
         """
         last_error: AgentError | None = None
 
         for attempt in range(1, max_retries + 1):
             try:
                 return await self._send_and_wait_once(
-                    session_key, message, timeout, on_delta,
+                    session_key, message, timeout, on_delta, model=model,
                 )
             except AgentError as e:
                 last_error = e
@@ -246,6 +248,7 @@ class OpenClawWSClient:
         message: str,
         timeout: float,
         on_delta: Callable[[str], asyncio.coroutines] | None,
+        model: str = "",
     ) -> AgentResponse:
         """Single attempt to send a message and wait for the response."""
         await self._ensure_connected()
@@ -317,11 +320,15 @@ class OpenClawWSClient:
         try:
             logger.info("Sending message to session '%s' (%d chars)", session_key, len(message))
 
-            await self._rpc("agent", {
+            rpc_params: dict = {
                 "sessionKey": session_key,
                 "message": message,
                 "idempotencyKey": str(uuid.uuid4()),
-            })
+            }
+            if model:
+                rpc_params["model"] = model
+
+            await self._rpc("agent", rpc_params)
 
             await asyncio.wait_for(done_event.wait(), timeout=timeout)
 
@@ -344,7 +351,7 @@ class OpenClawWSClient:
                 or _estimate_tokens(full_text)
             )
             total_tokens = input_tokens + output_tokens
-            cost = _estimate_cost(input_tokens, output_tokens)
+            cost = _estimate_cost(input_tokens, output_tokens, model=model)
 
             logger.info(
                 "Received response from session '%s' (%d chars, ~%d tokens)",
