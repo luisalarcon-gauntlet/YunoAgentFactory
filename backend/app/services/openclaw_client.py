@@ -49,6 +49,18 @@ def _estimate_cost(input_tokens: int, output_tokens: int, model: str = "") -> fl
     return input_tokens * input_price + output_tokens * output_price
 
 
+class AgentError(Exception):
+    """Raised when an OpenClaw agent run ends in error/aborted state."""
+
+    def __init__(self, message: str, *, retryable: bool = False) -> None:
+        super().__init__(message)
+        self.retryable = retryable
+
+
+# Substrings in error messages that indicate a transient/retryable failure
+_RETRYABLE_PATTERNS = ("overloaded", "temporarily", "rate limit", "529", "503")
+
+
 class OpenClawWSClient:
     """WebSocket RPC client for the OpenClaw gateway (protocol v3).
 
@@ -192,6 +204,7 @@ class OpenClawWSClient:
         message: str,
         timeout: float = 120,
         on_delta: Callable[[str], asyncio.coroutines] | None = None,
+        max_retries: int = 3,
     ) -> AgentResponse:
         """Send a message to an agent and wait for the complete response.
 
@@ -199,13 +212,47 @@ class OpenClawWSClient:
         - `agent` events with stream="assistant" carry real-time deltas
         - `chat` final event carries the complete message in message.content
 
+        Retries automatically on transient errors (API overloaded, rate limits)
+        up to ``max_retries`` times with exponential backoff.
+
         Args:
             on_delta: Optional async callback invoked with each streaming text chunk.
+            max_retries: Maximum number of retry attempts for transient errors.
         """
+        last_error: AgentError | None = None
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                return await self._send_and_wait_once(
+                    session_key, message, timeout, on_delta,
+                )
+            except AgentError as e:
+                last_error = e
+                if not e.retryable or attempt == max_retries:
+                    raise
+                backoff = 2 ** attempt  # 2s, 4s, 8s
+                logger.warning(
+                    "Transient agent error (attempt %d/%d), retrying in %ds: %s",
+                    attempt, max_retries, backoff, e,
+                )
+                await asyncio.sleep(backoff)
+
+        # Should not reach here, but satisfy type checker
+        raise last_error  # type: ignore[misc]
+
+    async def _send_and_wait_once(
+        self,
+        session_key: str,
+        message: str,
+        timeout: float,
+        on_delta: Callable[[str], asyncio.coroutines] | None,
+    ) -> AgentResponse:
+        """Single attempt to send a message and wait for the response."""
         await self._ensure_connected()
 
         response_parts: list[str] = []
         final_text: str | None = None
+        agent_error: AgentError | None = None
         usage_data: dict = {}
         done_event = asyncio.Event()
 
@@ -227,7 +274,7 @@ class OpenClawWSClient:
 
         async def on_chat_event(event: dict) -> None:
             """Detect final state and extract complete message + token usage."""
-            nonlocal final_text
+            nonlocal final_text, agent_error
             payload = event.get("payload", {})
             if payload.get("sessionKey") != session_key:
                 return
@@ -257,6 +304,11 @@ class OpenClawWSClient:
             elif state in ("aborted", "error"):
                 error_msg = payload.get("error", payload.get("message", "Unknown error"))
                 logger.error("Agent error for session '%s': %s", session_key, error_msg)
+                retryable = any(p in error_msg.lower() for p in _RETRYABLE_PATTERNS)
+                agent_error = AgentError(
+                    f"Agent '{session_key}' failed: {error_msg}",
+                    retryable=retryable,
+                )
                 done_event.set()
 
         self._event_listeners.setdefault("agent", []).append(on_agent_event)
@@ -272,6 +324,10 @@ class OpenClawWSClient:
             })
 
             await asyncio.wait_for(done_event.wait(), timeout=timeout)
+
+            # If the agent errored, raise instead of returning empty response
+            if agent_error is not None:
+                raise agent_error
 
             # Prefer the authoritative final text; fall back to collected deltas
             full_text = final_text if final_text is not None else "".join(response_parts)
