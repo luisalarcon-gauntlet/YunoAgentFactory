@@ -11,7 +11,7 @@ from slowapi.util import get_remote_address
 
 from app.auth import BasicAuthMiddleware
 from app.database import async_session_factory
-from app.routers import agents, auth, executions, runs, workflows
+from app.routers import agents, analytics, artifacts, auth, chat, executions, runs, workflows
 from app.seed import seed_templates
 from app.services.telegram_bot import telegram_bot
 from app.websocket import monitor
@@ -67,7 +67,10 @@ app.add_middleware(
 
 
 app.include_router(auth.router)
+app.include_router(analytics.router)
 app.include_router(agents.router)
+app.include_router(artifacts.router)
+app.include_router(chat.router)
 app.include_router(workflows.router)
 app.include_router(executions.router)
 app.include_router(executions.debug_router)
