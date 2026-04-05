@@ -162,6 +162,99 @@ export interface AgentMessage {
   created_at: string;
 }
 
+// ── Analytics types ──
+
+export interface OverviewMetrics {
+  total_executions: number;
+  success_count: number;
+  success_rate: number;
+  failure_count: number;
+  failure_rate: number;
+  avg_duration_seconds: number;
+  total_tokens: number;
+  total_cost_usd: number;
+}
+
+export interface ExecutionsPerDay {
+  date: string;
+  total: number;
+  succeeded: number;
+  failed: number;
+}
+
+export interface ErrorSummaryItem {
+  workflow_name: string;
+  agent_name: string;
+  error_type: string;
+  count: number;
+  last_occurred: string;
+}
+
+export interface WorkflowPerformanceItem {
+  workflow_id: string;
+  workflow_name: string;
+  total_runs: number;
+  success_rate: number;
+  avg_duration_seconds: number;
+  last_run: string | null;
+}
+
+// ── Artifact types ──
+
+export interface Artifact {
+  id: string;
+  name: string;
+  type: "application" | "document" | "website" | "code" | "other";
+  content: string;
+  execution_id: string | null;
+  workflow_id: string | null;
+  live_url: string | null;
+  tags: string[];
+  status: "live" | "draft" | "archived";
+  created_at: string;
+  updated_at: string;
+  workflow_name: string | null;
+}
+
+export interface ArtifactListItem {
+  id: string;
+  name: string;
+  type: "application" | "document" | "website" | "code" | "other";
+  execution_id: string | null;
+  workflow_id: string | null;
+  live_url: string | null;
+  tags: string[];
+  status: "live" | "draft" | "archived";
+  created_at: string;
+  updated_at: string;
+  workflow_name: string | null;
+}
+
+export type ArtifactCreate = Pick<Artifact, "name" | "type" | "content"> &
+  Partial<Pick<Artifact, "execution_id" | "workflow_id" | "live_url" | "tags" | "status">>;
+
+export type ArtifactUpdate = Partial<Pick<Artifact, "name" | "type" | "content" | "live_url" | "tags" | "status">>;
+
+// ── Chat types ──
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface SuggestedWorkflow {
+  template_id: string | null;
+  name: string;
+  description: string;
+  agents: string[];
+}
+
+export interface ChatRecommendResponse {
+  message: string;
+  suggested_workflow: SuggestedWorkflow | null;
+  suggested_action: "use_template" | "create_custom" | null;
+}
+
 // ── API client ──
 
 export const api = {
@@ -213,6 +306,44 @@ export const api = {
       request<void>(`/api/v1/executions/${id}`, { method: "DELETE" }),
     cancel: (id: string) =>
       request<void>(`/api/v1/executions/${id}/cancel`, { method: "POST" }),
+  },
+
+  analytics: {
+    overview: (period: string = "7d") =>
+      request<OverviewMetrics>(`/api/v1/analytics/overview?period=${period}`),
+    executionsOverTime: () =>
+      request<ExecutionsPerDay[]>("/api/v1/analytics/executions-over-time"),
+    errors: () =>
+      request<ErrorSummaryItem[]>("/api/v1/analytics/errors"),
+    workflowPerformance: () =>
+      request<WorkflowPerformanceItem[]>("/api/v1/analytics/workflow-performance"),
+  },
+
+  artifacts: {
+    list: (params?: { type?: string; status?: string; tags?: string; search?: string }) => {
+      const qs = new URLSearchParams();
+      if (params?.type) qs.set("type", params.type);
+      if (params?.status) qs.set("status", params.status);
+      if (params?.tags) qs.set("tags", params.tags);
+      if (params?.search) qs.set("search", params.search);
+      const q = qs.toString();
+      return request<ArtifactListItem[]>(`/api/v1/artifacts${q ? `?${q}` : ""}`);
+    },
+    get: (id: string) => request<Artifact>(`/api/v1/artifacts/${id}`),
+    create: (data: ArtifactCreate) =>
+      request<Artifact>("/api/v1/artifacts", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: ArtifactUpdate) =>
+      request<Artifact>(`/api/v1/artifacts/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      request<Artifact>(`/api/v1/artifacts/${id}`, { method: "DELETE" }),
+  },
+
+  chat: {
+    recommend: (messages: ChatMessage[]) =>
+      request<ChatRecommendResponse>("/api/v1/chat/recommend", {
+        method: "POST",
+        body: JSON.stringify({ messages }),
+      }),
   },
 
   runs: {
