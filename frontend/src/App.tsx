@@ -6,6 +6,8 @@ import AgentsPage from "./pages/AgentsPage";
 import WorkflowBuilderPage from "./pages/WorkflowBuilderPage";
 import ExecutionsPage from "./pages/ExecutionsPage";
 import MonitorPage from "./pages/MonitorPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import ArtifactsPage from "./pages/ArtifactsPage";
 import TemplatesPage from "./pages/TemplatesPage";
 
 function App() {
@@ -25,6 +27,8 @@ function App() {
           <Route path="/workflows/:id?" element={<WorkflowBuilderPage />} />
           <Route path="/runs" element={<ExecutionsPage />} />
           <Route path="/monitor" element={<MonitorPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/artifacts" element={<ArtifactsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
         </Route>
       </Routes>
