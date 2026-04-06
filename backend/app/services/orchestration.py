@@ -7,6 +7,7 @@ from langsmith import traceable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import Agent
+from app.models.artifact import Artifact
 from app.models.execution import AgentEvent, ExecutionStep, WorkflowExecution
 from app.models.message import AgentMessage
 from app.models.workflow import Workflow
@@ -197,6 +198,13 @@ class OrchestrationEngine:
             logger.exception("Workflow execution %s failed", execution.id)
 
         execution.completed_at = datetime.now(timezone.utc)
+
+        if execution.status == "completed":
+            try:
+                await self._create_artifact_from_execution(execution, workflow)
+            except Exception:
+                logger.warning("Failed to create artifact for execution %s", execution.id, exc_info=True)
+
         await self.db.commit()
 
         await self.ws_manager.broadcast({
@@ -455,3 +463,59 @@ class OrchestrationEngine:
         )
         self.db.add(msg)
         await self.db.flush()
+
+    async def _create_artifact_from_execution(
+        self, execution: WorkflowExecution, workflow: Workflow
+    ) -> None:
+        """Auto-create an artifact from the final output of a completed execution."""
+        import re
+        from sqlalchemy import select as sa_select
+
+        # Get the last completed step's output
+        result = await self.db.execute(
+            sa_select(ExecutionStep)
+            .where(
+                ExecutionStep.execution_id == execution.id,
+                ExecutionStep.status == "completed",
+            )
+            .order_by(ExecutionStep.completed_at.desc())
+            .limit(1)
+        )
+        last_step = result.scalar_one_or_none()
+        if not last_step or not last_step.output_data:
+            return
+
+        output = last_step.output_data
+        content = output
+
+        # Detect artifact type and live_url from output patterns
+        artifact_type = "other"
+        live_url = None
+
+        # Check for deployed app URLs (ports 9000-9099)
+        url_match = re.search(r"https?://[^\s]+:90\d{2}[^\s]*", output)
+        if url_match:
+            live_url = url_match.group(0)
+            artifact_type = "application"
+        elif re.search(r"```(html|jsx|tsx|vue)", output, re.IGNORECASE):
+            artifact_type = "website"
+        elif re.search(r"```(python|javascript|typescript|go|rust|java|c\+\+|ruby|php)", output, re.IGNORECASE):
+            artifact_type = "code"
+        elif re.search(r"^#{1,3}\s", output, re.MULTILINE):
+            artifact_type = "document"
+
+        status = "live" if live_url else "draft"
+
+        artifact = Artifact(
+            name=f"{workflow.name} — Output",
+            type=artifact_type,
+            content=content,
+            execution_id=execution.id,
+            workflow_id=workflow.id,
+            live_url=live_url,
+            tags=[],
+            status=status,
+        )
+        self.db.add(artifact)
+        await self.db.flush()
+        logger.info("Created artifact %s from execution %s", artifact.id, execution.id)
