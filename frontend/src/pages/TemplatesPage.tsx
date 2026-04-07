@@ -48,7 +48,7 @@ function TemplateCard({ template }: { template: Workflow }) {
   const stableEdgeTypes = useMemo(() => edgeTypes, []);
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden hover:border-primary/30 transition-colors">
+    <div className="rounded-lg border border-border bg-card overflow-hidden hover:border-primary/30 transition-colors">
       {/* Preview */}
       <div className="h-48 bg-background/50 border-b border-border">
         <ReactFlowProvider>
@@ -109,7 +109,7 @@ export default function TemplatesPage() {
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-border bg-card h-72 animate-pulse" />
+            <div key={i} className="rounded-lg border border-border bg-card h-72 animate-pulse" />
           ))}
         </div>
       )}

@@ -263,7 +263,7 @@ function ArtifactDetail({
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full mt-0.5 px-2 py-1.5 rounded-md bg-background border border-border text-sm outline-none focus:border-primary/50"
+                    className="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   >
                     {STATUS_OPTIONS.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -306,7 +306,7 @@ function ArtifactDetail({
                 value={editTags}
                 onChange={(e) => setEditTags(e.target.value)}
                 placeholder="comma-separated tags"
-                className="w-full px-2 py-1.5 rounded-md bg-background border border-border text-sm outline-none focus:border-primary/50"
+                className="w-full px-2 py-1.5 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             ) : (
               <div className="flex flex-wrap gap-1.5">
@@ -384,13 +384,13 @@ export default function ArtifactsPage() {
           aria-label="Search artifacts"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-md bg-card border border-border text-sm outline-none focus:border-primary/50 transition-colors placeholder:text-muted-foreground"
+          className="flex-1 px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
         />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           aria-label="Filter by type"
-          className="px-3 py-2 rounded-md bg-card border border-border text-sm outline-none focus:border-primary/50 transition-colors"
+          className="px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value="">All Types</option>
           {TYPE_OPTIONS.map((t) => (
@@ -401,7 +401,7 @@ export default function ArtifactsPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           aria-label="Filter by status"
-          className="px-3 py-2 rounded-md bg-card border border-border text-sm outline-none focus:border-primary/50 transition-colors"
+          className="px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value="">All Statuses</option>
           {STATUS_OPTIONS.map((s) => (

@@ -291,6 +291,7 @@ function WorkflowBuilderInner() {
                 ? "bg-primary/20 text-primary"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             )}
+            aria-label="Workflow Assistant"
             title="Workflow Assistant"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">

@@ -111,7 +111,7 @@ function ExecutionsChart() {
                   title={`${day.failed} failed`}
                 />
               </div>
-              <span className="text-[9px] text-muted-foreground truncate w-full text-center">{dateLabel}</span>
+              <span className="text-[10px] text-muted-foreground truncate w-full text-center">{dateLabel}</span>
             </div>
           );
         })}

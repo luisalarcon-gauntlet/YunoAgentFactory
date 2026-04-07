@@ -1,26 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Execution } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { executionStatus, sourceBadge } from "@/lib/status";
 
 interface ExecutionListProps {
   selectedId?: string;
   onSelect: (execution: Execution) => void;
   onDeleted?: (id: string) => void;
 }
-
-const statusBadge: Record<string, { bg: string; text: string }> = {
-  pending: { bg: "bg-zinc-500/15", text: "text-zinc-400" },
-  running: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-  completed: { bg: "bg-blue-500/15", text: "text-blue-400" },
-  failed: { bg: "bg-red-500/15", text: "text-red-400" },
-  timed_out: { bg: "bg-amber-500/15", text: "text-amber-400" },
-  cancelled: { bg: "bg-zinc-500/15", text: "text-zinc-400" },
-};
-
-const sourceBadge: Record<string, { bg: string; text: string; label: string }> = {
-  web: { bg: "bg-sky-500/15", text: "text-sky-400", label: "Web" },
-  telegram: { bg: "bg-indigo-500/15", text: "text-indigo-400", label: "Telegram" },
-};
 
 function formatTimeAgo(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime();
@@ -80,7 +67,7 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
   return (
     <div className="space-y-1">
       {executions.map((exec) => {
-        const badge = statusBadge[exec.status] ?? statusBadge.pending;
+        const badge = executionStatus[exec.status] ?? executionStatus.pending;
         const isSelected = exec.id === selectedId;
 
         const iterations = Number(exec.iteration_count) || 0;
@@ -133,7 +120,7 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
             </div>
             <div className="flex items-center gap-3 mt-1">
               {exec.source && (() => {
-                const sb = sourceBadge[exec.source] ?? sourceBadge.web;
+                const sb = sourceBadge[exec.source] ?? sourceBadge.web!;
                 return (
                   <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", sb.bg, sb.text)}>
                     {sb.label}

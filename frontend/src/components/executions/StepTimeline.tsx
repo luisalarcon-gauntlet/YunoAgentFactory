@@ -3,6 +3,7 @@ import type { ExecutionStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useMonitorStore } from "@/stores/monitor-store";
 import MarkdownContent from "@/components/ui/markdown-content";
+import { executionStatus } from "@/lib/status";
 
 interface StepTimelineProps {
   steps: ExecutionStep[];
@@ -10,13 +11,6 @@ interface StepTimelineProps {
   executionId?: string;
   onStepClick?: (step: ExecutionStep) => void;
 }
-
-const statusConfig: Record<string, { dot: string; bg: string; label: string }> = {
-  pending: { dot: "bg-zinc-500", bg: "bg-zinc-500/10", label: "Pending" },
-  running: { dot: "bg-emerald-500 animate-pulse", bg: "bg-emerald-500/10", label: "Running" },
-  completed: { dot: "bg-blue-500", bg: "bg-blue-500/10", label: "Completed" },
-  failed: { dot: "bg-red-500", bg: "bg-red-500/10", label: "Failed" },
-};
 
 function formatDuration(ms: number): string {
   const val = Number(ms) || 0;
@@ -123,7 +117,7 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
   return (
     <div className="space-y-0">
       {steps.map((step, index) => {
-        const config = statusConfig[step.status] ?? statusConfig.pending;
+        const config = executionStatus[step.status] ?? executionStatus.pending;
         const isActive = step.id === activeStepId;
         const isLast = index === steps.length - 1;
         const isOutputExpanded = expandedSteps.has(step.id);
@@ -142,7 +136,7 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
           >
             {/* Timeline line + dot */}
             <div className="flex flex-col items-center pt-3">
-              <div className={cn("w-3 h-3 rounded-full shrink-0 z-10 ring-2 ring-background", config.dot)} />
+              <div className={cn("w-3 h-3 rounded-full shrink-0 z-10 ring-2 ring-background", config.dot, step.status === "running" && "animate-pulse")} />
               {!isLast && (
                 <div className="w-0.5 flex-1 bg-border -mb-3 mt-1" />
               )}
@@ -155,7 +149,7 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                   <span className="text-sm font-medium">
                     {step.agent_name ?? step.node_id}
                   </span>
-                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", config.bg, config.dot.replace("animate-pulse", "").includes("emerald") ? "text-emerald-400" : config.dot.includes("blue") ? "text-blue-400" : config.dot.includes("red") ? "text-red-400" : "text-zinc-400")}>
+                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", config.bg, config.text)}>
                     {config.label}
                   </span>
                 </div>

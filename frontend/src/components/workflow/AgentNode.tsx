@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { cn } from "@/lib/utils";
+import { executionStatus, agentStatus } from "@/lib/status";
 
 export interface AgentNodeData {
   label: string;
@@ -17,12 +18,10 @@ export interface AgentNodeData {
 
 export type AgentNodeType = Node<AgentNodeData, "agentNode">;
 
-const statusConfig: Record<string, { color: string; ring: string }> = {
-  idle: { color: "bg-zinc-500", ring: "" },
-  running: { color: "bg-emerald-500 animate-pulse", ring: "ring-2 ring-emerald-500/30" },
-  completed: { color: "bg-blue-500", ring: "" },
-  failed: { color: "bg-red-500", ring: "ring-2 ring-red-500/30" },
-  error: { color: "bg-red-500", ring: "ring-2 ring-red-500/30" },
+const nodeStatusRing: Record<string, string> = {
+  running: "ring-2 ring-emerald-500/30",
+  failed:  "ring-2 ring-red-500/30",
+  error:   "ring-2 ring-red-500/30",
 };
 
 const channelIcons: Record<string, { label: string; bg: string; text: string }> = {
@@ -34,13 +33,15 @@ const channelIcons: Record<string, { label: string; bg: string; text: string }> 
 
 function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
   const status = data.status ?? "idle";
-  const { color, ring } = statusConfig[status] ?? statusConfig.idle;
+  const statusStyle = executionStatus[status] ?? agentStatus[status] ?? agentStatus.idle;
+  const color = statusStyle.dot;
+  const ring = nodeStatusRing[status] ?? "";
   const channels = data.channels ?? [];
 
   return (
     <div
       className={cn(
-        "px-4 py-3 rounded-xl border-2 shadow-lg bg-card min-w-[180px] max-w-[220px] transition-all duration-200",
+        "px-4 py-3 rounded-lg border-2 shadow-lg bg-card min-w-[180px] max-w-[220px] transition-all duration-200",
         selected ? "border-primary shadow-primary/20" : "border-border",
         ring
       )}
@@ -53,7 +54,7 @@ function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
 
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", color)} aria-hidden="true" />
+        <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", color, status === "running" && "animate-pulse")} aria-hidden="true" />
         <span className="font-semibold text-sm text-foreground truncate">
           {data.label}
         </span>

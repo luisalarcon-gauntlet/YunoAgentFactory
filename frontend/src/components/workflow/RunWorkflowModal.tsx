@@ -70,7 +70,7 @@ export default function RunWorkflowModal({
           aria-label="Initial prompt for workflow"
           placeholder="Describe the task for the first agent..."
           rows={5}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+          className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
           disabled={loading}
         />
 

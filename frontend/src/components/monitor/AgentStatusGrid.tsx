@@ -2,12 +2,7 @@ import { useMonitorStore } from "@/stores/monitor-store";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-const statusConfig: Record<string, { dot: string; label: string }> = {
-  idle: { dot: "bg-zinc-500", label: "Idle" },
-  running: { dot: "bg-emerald-500 animate-pulse", label: "Running" },
-  error: { dot: "bg-red-500", label: "Error" },
-};
+import { agentStatus } from "@/lib/status";
 
 export default function AgentStatusGrid() {
   const agentStatuses = useMonitorStore((s) => s.agentStatuses);
@@ -41,7 +36,7 @@ export default function AgentStatusGrid() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
       {merged.map((agent) => {
-        const config = statusConfig[agent.status] ?? statusConfig.idle;
+        const config = agentStatus[agent.status] ?? agentStatus.idle;
         return (
           <div
             key={agent.id}
@@ -56,7 +51,7 @@ export default function AgentStatusGrid() {
               {agent.channels.length > 0 && (
                 <div className="flex gap-0.5">
                   {agent.channels.map((ch) => (
-                    <span key={ch} className="text-[9px] bg-primary/10 text-primary px-1 rounded">
+                    <span key={ch} className="text-[10px] bg-primary/10 text-primary px-1 rounded">
                       {ch}
                     </span>
                   ))}

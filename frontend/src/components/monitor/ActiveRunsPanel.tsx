@@ -1,5 +1,4 @@
 import { useMonitorStore } from "@/stores/monitor-store";
-import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 
 interface ActiveExecution {
@@ -49,7 +48,7 @@ function StreamingOutput({ executionId }: { executionId: string }) {
               {delta.agentName || "Agent"}
             </span>
           </div>
-          <pre className="text-[11px] text-foreground/70 whitespace-pre-wrap break-words font-mono leading-relaxed">
+          <pre className="text-xs text-foreground/70 whitespace-pre-wrap break-words font-mono leading-relaxed">
             {delta.text || "..."}
           </pre>
         </div>

@@ -7,34 +7,14 @@ import StepDetailModal from "./StepDetailModal";
 import { cn } from "@/lib/utils";
 import { useMonitorStore } from "@/stores/monitor-store";
 import MarkdownContent from "@/components/ui/markdown-content";
+import { executionStatus, sourceBadge, eventTypeColor, eventDotColor } from "@/lib/status";
 
 interface ExecutionDetailProps {
   execution: Execution;
   onClose: () => void;
 }
 
-const statusBadge: Record<string, { bg: string; text: string }> = {
-  pending: { bg: "bg-zinc-500/15", text: "text-zinc-400" },
-  running: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-  completed: { bg: "bg-blue-500/15", text: "text-blue-400" },
-  failed: { bg: "bg-red-500/15", text: "text-red-400" },
-  timed_out: { bg: "bg-amber-500/15", text: "text-amber-400" },
-  cancelled: { bg: "bg-zinc-500/15", text: "text-zinc-400" },
-};
-
 type Tab = "steps" | "conversation" | "events";
-
-const sourceBadgeMap: Record<string, { bg: string; text: string; label: string }> = {
-  web: { bg: "bg-sky-500/15", text: "text-sky-400", label: "Web" },
-  telegram: { bg: "bg-indigo-500/15", text: "text-indigo-400", label: "Telegram" },
-};
-
-const eventTypeColor: Record<string, string> = {
-  started: "text-blue-400",
-  output: "text-emerald-400",
-  completed: "text-sky-400",
-  error: "text-red-400",
-};
 
 function EventTimeline({ events }: { events: AgentEvent[] }) {
   if (events.length === 0) {
@@ -57,10 +37,7 @@ function EventTimeline({ events }: { events: AgentEvent[] }) {
             <span
               className={cn(
                 "block w-2 h-2 rounded-full",
-                event.event_type === "started" ? "bg-blue-500" :
-                event.event_type === "output" ? "bg-emerald-500" :
-                event.event_type === "completed" ? "bg-sky-500" :
-                "bg-red-500"
+                eventDotColor[event.event_type] ?? "bg-red-500"
               )}
             />
           </div>
@@ -334,7 +311,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
     refetchInterval: isLive ? 3000 : false,
   });
 
-  const badge = statusBadge[execution.status] ?? statusBadge.pending;
+  const badge = executionStatus[execution.status] ?? executionStatus.pending;
   const totalTokens = steps?.reduce((sum, s) => sum + (Number(s.token_count) || 0), 0) ?? 0;
   const totalCost = steps?.reduce((sum, s) => sum + (Number(s.cost_usd) || 0), 0) ?? 0;
 
@@ -371,7 +348,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
               {execution.status}
             </span>
             {execution.source && (() => {
-              const sb = sourceBadgeMap[execution.source] ?? sourceBadgeMap.web;
+              const sb = sourceBadge[execution.source] ?? sourceBadge.web;
               return (
                 <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", sb.bg, sb.text)}>
                   {sb.label}

@@ -1,37 +1,11 @@
 import type { Execution } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { executionStatus } from "@/lib/status";
 
 interface Props {
   runs: Execution[];
 }
-
-const statusConfig: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
-  completed: {
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-400",
-    label: "Completed",
-  },
-  failed: { bg: "bg-red-500/15", text: "text-red-400", label: "Failed" },
-  timed_out: {
-    bg: "bg-amber-500/15",
-    text: "text-amber-400",
-    label: "Timed Out",
-  },
-  running: {
-    bg: "bg-blue-500/15",
-    text: "text-blue-400",
-    label: "Running",
-  },
-  pending: {
-    bg: "bg-zinc-500/15",
-    text: "text-zinc-400",
-    label: "Pending",
-  },
-};
 
 function formatDuration(
   startedAt: string | null,
@@ -69,7 +43,7 @@ export default function RecentRunsList({ runs }: Props) {
   return (
     <div className="overflow-y-auto max-h-[calc(100vh-400px)] md:max-h-[calc(100vh-500px)] space-y-1">
       {runs.map((run) => {
-        const config = statusConfig[run.status] ?? statusConfig.pending;
+        const config = executionStatus[run.status] ?? executionStatus.pending;
         return (
           <div
             key={run.id}
@@ -79,7 +53,7 @@ export default function RecentRunsList({ runs }: Props) {
             {/* Status badge */}
             <span
               className={cn(
-                "text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase shrink-0",
+                "text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase shrink-0",
                 config.bg,
                 config.text
               )}
@@ -93,7 +67,7 @@ export default function RecentRunsList({ runs }: Props) {
             </span>
 
             {/* Source */}
-            <span className="text-[9px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted/30 hidden sm:inline">
+            <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted/30 hidden sm:inline">
               {run.source}
             </span>
 

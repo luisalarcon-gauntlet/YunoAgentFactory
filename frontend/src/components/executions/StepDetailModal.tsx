@@ -2,18 +2,12 @@ import { useState, useEffect } from "react";
 import type { ExecutionStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import MarkdownContent from "@/components/ui/markdown-content";
+import { executionStatus } from "@/lib/status";
 
 interface StepDetailModalProps {
   step: ExecutionStep;
   onClose: () => void;
 }
-
-const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: "bg-zinc-500/15", text: "text-zinc-400", label: "Pending" },
-  running: { bg: "bg-emerald-500/15", text: "text-emerald-400", label: "Running" },
-  completed: { bg: "bg-blue-500/15", text: "text-blue-400", label: "Completed" },
-  failed: { bg: "bg-red-500/15", text: "text-red-400", label: "Failed" },
-};
 
 function formatDuration(ms: number): string {
   const val = Number(ms) || 0;
@@ -53,7 +47,7 @@ type Tab = "output" | "input";
 
 export default function StepDetailModal({ step, onClose }: StepDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>("output");
-  const config = statusConfig[step.status] ?? statusConfig.pending;
+  const config = executionStatus[step.status] ?? executionStatus.pending;
 
   // Close on Escape
   useEffect(() => {
