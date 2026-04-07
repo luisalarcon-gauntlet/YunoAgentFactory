@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Execution, type ExecutionStep, type AgentEvent } from "@/lib/api";
-import { downloadReport } from "@/lib/export-report";
 import StepTimeline from "./StepTimeline";
 import StepDetailModal from "./StepDetailModal";
 import { cn } from "@/lib/utils";
@@ -311,11 +310,11 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
   });
 
   const badge = executionStatus[execution.status] ?? executionStatus.pending;
-  const totalTokens = steps?.reduce((sum, s) => sum + (Number(s.token_count) || 0), 0) ?? 0;
-  const totalCost = steps?.reduce((sum, s) => sum + (Number(s.cost_usd) || 0), 0) ?? 0;
+  const totalTokens = useMemo(() => steps?.reduce((sum, s) => sum + (Number(s.token_count) || 0), 0) ?? 0, [steps]);
+  const totalCost = useMemo(() => steps?.reduce((sum, s) => sum + (Number(s.cost_usd) || 0), 0) ?? 0, [steps]);
 
   // Extract live app URL from the last completed step's output (port range 9000-9099)
-  const liveAppUrl = (() => {
+  const liveAppUrl = useMemo(() => {
     if (!steps || steps.length === 0) return null;
     const completedSteps = steps.filter((s) => s.status === "completed" && s.output_data);
     for (let i = completedSteps.length - 1; i >= 0; i--) {
@@ -323,7 +322,12 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
       if (match) return match[0];
     }
     return null;
-  })();
+  }, [steps]);
+
+  const handleDownloadReport = useCallback(async () => {
+    const { downloadReport } = await import("@/lib/export-report");
+    downloadReport(execution, steps ?? []);
+  }, [execution, steps]);
 
   return (
     <div className="flex flex-col h-full">
@@ -378,7 +382,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           )}
           {steps && steps.length > 0 && execution.status !== "running" && (
             <button
-              onClick={() => downloadReport(execution, steps)}
+              onClick={handleDownloadReport}
               className="text-muted-foreground hover:text-foreground p-2.5 rounded hover:bg-muted/50 transition-colors"
               aria-label="Download report"
               title="Download report"
