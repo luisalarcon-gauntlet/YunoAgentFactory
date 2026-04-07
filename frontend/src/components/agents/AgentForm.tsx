@@ -33,7 +33,7 @@ function TagInput({
       <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
         {label}
       </label>
-      <div className="flex flex-wrap gap-1.5 mt-1">
+      <div className="flex flex-wrap gap-2 mt-1.5">
         {options.map((opt) => {
           const isActive = selected.includes(opt);
           return (
@@ -48,7 +48,7 @@ function TagInput({
                 )
               }
               className={cn(
-                "px-2 py-1 text-xs rounded-md border transition-colors",
+                "px-3 py-2 text-xs rounded-md border transition-colors",
                 isActive
                   ? "bg-primary/15 border-primary/50 text-primary"
                   : "bg-muted/30 border-border text-muted-foreground hover:border-primary/30"
@@ -154,7 +154,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="text-muted-foreground hover:text-foreground p-2 rounded transition-colors"
+            className="text-muted-foreground hover:text-foreground p-2.5 rounded transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -163,7 +163,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
           {/* Name */}
           <div>
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
@@ -174,7 +174,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full px-3 py-2 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="mt-1 w-full px-3 py-2.5 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
               placeholder="e.g. Coder Agent"
             />
           </div>
@@ -189,7 +189,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
               required
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="mt-1 w-full px-3 py-2 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="mt-1 w-full px-3 py-2.5 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
               placeholder="e.g. Writes clean, well-documented code"
             />
           </div>
@@ -204,7 +204,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               rows={4}
-              className="mt-1 w-full px-3 py-2 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+              className="mt-1 w-full px-3 py-2.5 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
               placeholder="You are a senior developer who..."
             />
           </div>
@@ -217,7 +217,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="mt-1 w-full px-3 py-2 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary outline-none"
+              className="mt-1 w-full px-3 py-2.5 text-sm rounded-lg bg-muted/30 border border-border focus:border-primary outline-none"
             >
               {MODEL_OPTIONS.map((m) => (
                 <option key={m} value={m}>{m}</option>
@@ -264,14 +264,14 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
               Guardrails
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-muted-foreground">Max Tokens</label>
                 <input
                   type="number"
                   value={guardrailMaxTokens}
                   onChange={(e) => setGuardrailMaxTokens(e.target.value)}
-                  className="mt-0.5 w-full px-2 py-1.5 text-xs rounded-md bg-muted/30 border border-border focus:border-primary outline-none"
+                  className="mt-0.5 w-full px-3 py-2.5 text-xs rounded-md bg-muted/30 border border-border focus:border-primary outline-none"
                 />
               </div>
               <div>
@@ -281,7 +281,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
                   step="0.01"
                   value={guardrailMaxCost}
                   onChange={(e) => setGuardrailMaxCost(e.target.value)}
-                  className="mt-0.5 w-full px-2 py-1.5 text-xs rounded-md bg-muted/30 border border-border focus:border-primary outline-none"
+                  className="mt-0.5 w-full px-3 py-2.5 text-xs rounded-md bg-muted/30 border border-border focus:border-primary outline-none"
                 />
               </div>
             </div>
@@ -296,18 +296,18 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 px-4 sm:px-5 py-3 border-t border-border">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+            className="px-4 py-2.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={() => mutation.mutate()}
             disabled={!name || !role || !systemPrompt || mutation.isPending}
-            className="px-4 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {mutation.isPending ? "Saving..." : isEdit ? "Update Agent" : "Create Agent"}
           </button>

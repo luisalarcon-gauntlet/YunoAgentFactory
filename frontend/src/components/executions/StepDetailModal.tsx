@@ -36,7 +36,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      className="text-xs px-2.5 py-1.5 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
     >
       {copied ? "Copied" : "Copy"}
     </button>
@@ -68,7 +68,7 @@ export default function StepDetailModal({ step, onClose }: StepDetailModalProps)
         role="dialog"
         aria-modal="true"
         aria-labelledby="step-detail-title"
-        className="relative w-full max-w-3xl max-h-[85vh] mx-4 bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        className="relative w-full max-w-2xl md:max-w-3xl max-h-[85vh] mx-4 bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/20">
@@ -78,7 +78,7 @@ export default function StepDetailModal({ step, onClose }: StepDetailModalProps)
               {config.label}
             </span>
           </div>
-          <button onClick={onClose} aria-label="Close dialog" className="text-muted-foreground hover:text-foreground p-2 rounded transition-colors">
+          <button onClick={onClose} aria-label="Close dialog" className="text-muted-foreground hover:text-foreground p-2.5 rounded transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
@@ -136,7 +136,7 @@ export default function StepDetailModal({ step, onClose }: StepDetailModalProps)
             aria-controls="step-tab-output"
             onClick={() => setActiveTab("output")}
             className={cn(
-              "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+              "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
               activeTab === "output"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -150,7 +150,7 @@ export default function StepDetailModal({ step, onClose }: StepDetailModalProps)
             aria-controls="step-tab-input"
             onClick={() => setActiveTab("input")}
             className={cn(
-              "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+              "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
               activeTab === "input"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"

@@ -53,7 +53,7 @@ export default function RunWorkflowModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="run-workflow-title"
-        className="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-lg mx-4 p-6"
+        className="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-lg mx-4 p-4 sm:p-6"
       >
         <h2 id="run-workflow-title" className="text-base font-semibold text-foreground mb-1">
           Run Workflow
@@ -70,26 +70,26 @@ export default function RunWorkflowModal({
           aria-label="Initial prompt for workflow"
           placeholder="Describe the task for the first agent..."
           rows={5}
-          className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+          className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
           disabled={loading}
         />
 
-        <p className="text-[10px] text-muted-foreground mt-1.5 mb-4">
+        <p className="text-xs text-muted-foreground mt-1.5 mb-4">
           Press Ctrl+Enter to run. Leave empty to use default instructions.
         </p>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            className="px-4 py-2.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="px-4 py-2.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {loading ? "Starting..." : "Run Workflow"}
           </button>

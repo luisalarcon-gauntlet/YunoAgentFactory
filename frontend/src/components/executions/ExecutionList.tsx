@@ -65,7 +65,7 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {executions.map((exec) => {
         const badge = executionStatus[exec.status] ?? executionStatus.pending;
         const isSelected = exec.id === selectedId;
@@ -93,7 +93,7 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
                   deleteMutation.mutate(exec.id);
                 }}
                 disabled={deleteMutation.isPending}
-                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
+                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-2.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
                 aria-label="Delete execution"
                 title="Delete execution"
               >

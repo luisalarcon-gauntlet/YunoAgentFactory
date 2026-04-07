@@ -46,21 +46,21 @@ export default function Sidebar() {
         <button
           onClick={() => setMobileOpen(false)}
           aria-label="Close navigation"
-          className="md:hidden text-muted-foreground hover:text-foreground p-2 rounded transition-colors"
+          className="md:hidden text-muted-foreground hover:text-foreground p-2.5 rounded transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      <nav className="flex-1 p-2 space-y-1">
+      <nav className="flex-1 p-2 space-y-1.5">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
                 isActive
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -81,10 +81,10 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="p-2 border-t border-border space-y-1">
+      <div className="p-2 border-t border-border space-y-1.5">
         <button
           onClick={() => setIsDark(!isDark)}
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -107,7 +107,7 @@ export default function Sidebar() {
             clearCredentials();
             navigate("/login");
           }}
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors w-full"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -132,7 +132,7 @@ export default function Sidebar() {
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation"
         aria-expanded={mobileOpen}
-        className="md:hidden fixed top-3 left-3 z-40 p-2 rounded-md bg-card border border-border text-foreground hover:bg-accent transition-colors"
+        className="md:hidden fixed top-3 left-3 z-40 h-11 w-11 flex items-center justify-center rounded-md bg-card border border-border text-foreground hover:bg-accent transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />

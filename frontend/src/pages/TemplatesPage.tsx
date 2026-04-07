@@ -79,7 +79,7 @@ function TemplateCard({ template }: { template: Workflow }) {
           onClick={() => cloneMutation.mutate()}
           disabled={cloneMutation.isPending}
           className={cn(
-            "mt-3 w-full px-3 py-2 text-xs font-medium rounded-md transition-colors",
+            "mt-3 w-full px-3 py-2.5 text-xs font-medium rounded-md transition-colors",
             "bg-primary text-primary-foreground hover:bg-primary/90",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}

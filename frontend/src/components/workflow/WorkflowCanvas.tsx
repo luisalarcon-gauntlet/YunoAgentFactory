@@ -115,7 +115,7 @@ export default function WorkflowCanvas({
         {!readOnly && (
           <>
             <Controls
-              className="!bg-card !border-border !rounded-lg !shadow-lg [&>button]:!bg-card [&>button]:!border-border [&>button]:!fill-foreground [&>button:hover]:!bg-accent"
+              className="!bg-card !border-border !rounded-lg !shadow-lg [&>button]:!bg-card [&>button]:!border-border [&>button]:!fill-foreground [&>button:hover]:!bg-accent [&>button]:!w-10 [&>button]:!h-10"
             />
             <MiniMap
               className="!bg-card !border-border !rounded-lg"

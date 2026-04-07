@@ -253,7 +253,7 @@ function WorkflowBuilderInner() {
             value={workflowName}
             onChange={(e) => setWorkflowName(e.target.value)}
             aria-label="Workflow name"
-            className="bg-transparent text-sm font-semibold border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-full sm:w-48 md:w-64"
+            className="bg-transparent text-sm font-semibold border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-2.5 w-full sm:w-48 md:w-64"
             placeholder="Workflow name"
           />
           <input
@@ -272,21 +272,21 @@ function WorkflowBuilderInner() {
           <button
             onClick={handleSave}
             disabled={saveMutation.isPending}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            className="px-3 py-2.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
           >
             {saveLabel}
           </button>
           <button
             onClick={handleRun}
             disabled={nodes.length === 0 || runMutation.isPending}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-2.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {runMutation.isPending ? "Starting..." : "Run"}
           </button>
           <button
             onClick={() => setChatOpen(!chatOpen)}
             className={cn(
-              "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+              "h-10 w-10 flex items-center justify-center text-xs font-medium rounded-md transition-colors",
               chatOpen
                 ? "bg-primary/20 text-primary"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"

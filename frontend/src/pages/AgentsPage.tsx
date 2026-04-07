@@ -24,14 +24,14 @@ export default function AgentsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-semibold">Agents</h2>
           <p className="text-sm text-muted-foreground">Manage your AI agents</p>
         </div>
         <button
           onClick={handleCreate}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="px-4 py-2.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
         >
           Create Agent
         </button>

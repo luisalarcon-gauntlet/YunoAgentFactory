@@ -325,12 +325,12 @@ export default function AnalyticsPage() {
     <div className="p-4 md:p-6 space-y-6 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Analytics</h1>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-0.5">
+        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card p-0.5">
           {PERIODS.map((p) => (
             <button
               key={p.value}
               onClick={() => setPeriod(p.value)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              className={`px-3 py-2.5 rounded-md text-xs font-medium transition-colors ${
                 period === p.value
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"

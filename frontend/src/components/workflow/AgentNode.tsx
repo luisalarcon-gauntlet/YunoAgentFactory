@@ -49,7 +49,7 @@ function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-background !-left-[6px]"
+        className="!w-3.5 !h-3.5 !bg-primary !border-2 !border-background !-left-[8px]"
       />
 
       {/* Header */}
@@ -99,7 +99,7 @@ function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-background !-right-[6px]"
+        className="!w-3.5 !h-3.5 !bg-primary !border-2 !border-background !-right-[8px]"
       />
     </div>
   );

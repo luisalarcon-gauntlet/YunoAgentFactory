@@ -169,7 +169,7 @@ function ConversationView({ steps }: { steps: ExecutionStep[] }) {
                     {isLong && (
                       <button
                         onClick={() => toggleBubble(step.id)}
-                        className="text-[10px] text-primary hover:text-primary/80 mt-1.5 transition-colors"
+                        className="text-xs text-primary hover:text-primary/80 mt-1.5 px-2 py-1 rounded hover:bg-primary/10 transition-colors"
                       >
                         {isExpanded ? "Show less" : "Show more"}
                       </button>
@@ -335,7 +335,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             <button
               onClick={onClose}
               aria-label="Back to list"
-              className="md:hidden text-muted-foreground hover:text-foreground p-2 -ml-1 rounded transition-colors"
+              className="md:hidden text-muted-foreground hover:text-foreground p-2.5 -ml-1 rounded transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -366,12 +366,12 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             {execution.id.slice(0, 8)}... · {execution.trigger_type || "manual"} · {formatDuration(execution.started_at, execution.completed_at)}
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {isCancellable && (
             <button
               onClick={() => cancelMutation.mutate()}
               disabled={cancelMutation.isPending}
-              className="text-xs font-medium px-2.5 py-1 rounded-md bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
+              className="text-xs font-medium px-3 py-2 rounded-md bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
               title="Cancel execution"
             >
               {cancelMutation.isPending ? "Cancelling..." : "Cancel"}
@@ -380,7 +380,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           {steps && steps.length > 0 && execution.status !== "running" && (
             <button
               onClick={() => downloadReport(execution, steps)}
-              className="text-muted-foreground hover:text-foreground p-1.5 rounded hover:bg-muted/50 transition-colors"
+              className="text-muted-foreground hover:text-foreground p-2.5 rounded hover:bg-muted/50 transition-colors"
               aria-label="Download report"
               title="Download report"
             >
@@ -392,7 +392,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           <button
             onClick={onClose}
             aria-label="Close details"
-            className="text-muted-foreground hover:text-foreground p-2 rounded transition-colors"
+            className="text-muted-foreground hover:text-foreground p-2.5 rounded transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -402,7 +402,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 px-4 py-3 border-b border-border">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 py-3 border-b border-border">
         <div>
           <p className="text-[10px] text-muted-foreground uppercase">Steps</p>
           <p className="text-sm font-semibold">{steps?.length ?? 0}</p>
@@ -456,7 +456,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           aria-controls="exec-tab-steps"
           onClick={() => setActiveTab("steps")}
           className={cn(
-            "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+            "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
             activeTab === "steps"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -470,7 +470,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           aria-controls="exec-tab-conversation"
           onClick={() => setActiveTab("conversation")}
           className={cn(
-            "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+            "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
             activeTab === "conversation"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -484,7 +484,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           aria-controls="exec-tab-events"
           onClick={() => setActiveTab("events")}
           className={cn(
-            "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+            "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
             activeTab === "events"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"

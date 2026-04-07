@@ -41,7 +41,7 @@ function SuggestionCard({
         {workflow.template_id && (
           <button
             onClick={() => onUseTemplate(workflow.template_id!)}
-            className="flex-1 px-2 py-1.5 text-[11px] font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="flex-1 px-3 py-2.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Use This Template
           </button>
@@ -49,7 +49,7 @@ function SuggestionCard({
         <button
           onClick={onCreateCustom}
           className={cn(
-            "px-2 py-1.5 text-[11px] font-medium rounded-md transition-colors",
+            "px-3 py-2.5 text-xs font-medium rounded-md transition-colors",
             workflow.template_id
               ? "flex-1 bg-secondary text-secondary-foreground hover:bg-secondary/80"
               : "flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -239,7 +239,7 @@ function ChatContent({
         <button
           onClick={onClose}
           aria-label="Close chat"
-          className="p-2 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="p-2.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -259,7 +259,7 @@ function ChatContent({
                 <button
                   key={starter}
                   onClick={() => onStarterClick(starter)}
-                  className="text-left text-xs px-3 py-2 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-left text-xs px-3 py-2.5 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {starter}
                 </button>
@@ -323,13 +323,13 @@ function ChatContent({
             placeholder="Describe what you need..."
             aria-label="Chat message"
             disabled={isPending}
-            className="flex-1 bg-secondary text-foreground text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground disabled:opacity-50"
+            className="flex-1 bg-secondary text-foreground text-xs rounded-lg px-3 py-2.5 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={!input.trim() || isPending}
             aria-label="Send message"
-            className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />

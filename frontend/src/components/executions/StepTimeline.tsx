@@ -40,7 +40,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      className="text-xs px-2.5 py-1.5 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
     >
       {copied ? "Copied" : "Copy"}
     </button>
@@ -210,7 +210,7 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                     onClick={(e) => toggleInput(step.id, e)}
                     aria-expanded={isInputExpanded}
                     aria-label="Toggle input"
-                    className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 px-2 py-1.5 rounded hover:bg-muted/50"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={cn("w-3 h-3 transition-transform", isInputExpanded && "rotate-90")}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -240,7 +240,7 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                           onClick={(e) => toggleExpand(step.id, e)}
                           aria-expanded={true}
                           aria-label="Collapse output"
-                          className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded hover:bg-muted/50"
                         >
                           Show less
                         </button>
@@ -259,7 +259,7 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                           onClick={(e) => toggleExpand(step.id, e)}
                           aria-expanded={false}
                           aria-label="Expand output"
-                          className="text-[10px] text-primary hover:text-primary/80 mt-0.5 transition-colors"
+                          className="text-xs text-primary hover:text-primary/80 mt-0.5 px-2 py-1.5 rounded hover:bg-primary/10 transition-colors"
                         >
                           Show more
                         </button>

@@ -171,7 +171,7 @@ function ArtifactDetail({
         <button
           onClick={onBack}
           aria-label="Back to library"
-          className="p-1.5 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+          className="p-2.5 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -201,14 +201,14 @@ function ArtifactDetail({
                 <>
                   <button
                     onClick={() => setEditing(false)}
-                    className="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground transition-colors"
+                    className="px-3 py-2.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={updateMutation.isPending}
-                    className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    className="px-3 py-2.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     {updateMutation.isPending ? "Saving..." : "Save"}
                   </button>
@@ -327,7 +327,7 @@ function ArtifactDetail({
               href={artifact.live_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -384,13 +384,13 @@ export default function ArtifactsPage() {
           aria-label="Search artifacts"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+          className="flex-1 px-3 py-2.5 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
         />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           aria-label="Filter by type"
-          className="px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="px-3 py-2.5 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value="">All Types</option>
           {TYPE_OPTIONS.map((t) => (
@@ -401,7 +401,7 @@ export default function ArtifactsPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           aria-label="Filter by status"
-          className="px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="px-3 py-2.5 rounded-lg bg-muted/30 border border-border text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value="">All Statuses</option>
           {STATUS_OPTIONS.map((s) => (

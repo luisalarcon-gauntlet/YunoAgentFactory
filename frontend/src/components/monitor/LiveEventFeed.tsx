@@ -49,7 +49,7 @@ export default function LiveEventFeed() {
         {events.length > 0 && (
           <button
             onClick={clearEvents}
-            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded hover:bg-muted/50 transition-colors"
           >
             Clear
           </button>

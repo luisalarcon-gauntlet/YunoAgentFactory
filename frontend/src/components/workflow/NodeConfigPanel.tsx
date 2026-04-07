@@ -42,7 +42,7 @@ export default function NodeConfigPanel({
         <button
           onClick={onClose}
           aria-label="Close config panel"
-          className="text-muted-foreground hover:text-foreground p-2 rounded transition-colors"
+          className="text-muted-foreground hover:text-foreground p-2.5 rounded transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -50,7 +50,7 @@ export default function NodeConfigPanel({
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4 touch-pan-y">
         {/* Agent info */}
         <div>
           <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
@@ -74,7 +74,7 @@ export default function NodeConfigPanel({
             onChange={(e) => handleInstructionChange(e.target.value)}
             placeholder="Instructions for this agent in the workflow..."
             rows={4}
-            className="mt-1 w-full px-3 py-2 text-xs rounded-lg bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+            className="mt-1 w-full px-3 py-2.5 text-sm rounded-lg bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
           />
         </div>
 
@@ -96,7 +96,7 @@ export default function NodeConfigPanel({
                         label: e.target.value === "always" ? "" : e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1),
                       })
                     }
-                    className="flex-1 px-2 py-1.5 text-xs rounded-md bg-muted/50 border border-border focus:border-primary outline-none"
+                    className="flex-1 px-3 py-2.5 text-xs rounded-md bg-muted/50 border border-border focus:border-primary outline-none"
                   >
                     <option value="always">Always</option>
                     <option value="approved">Approved</option>
@@ -132,7 +132,7 @@ export default function NodeConfigPanel({
         <div className="pt-2 border-t border-border">
           <button
             onClick={() => onDeleteNode(node.id)}
-            className="w-full px-3 py-1.5 text-xs font-medium rounded-md text-destructive-foreground bg-destructive/80 hover:bg-destructive transition-colors"
+            className="w-full px-3 py-2.5 text-xs font-medium rounded-md text-destructive-foreground bg-destructive/80 hover:bg-destructive transition-colors"
           >
             Remove from workflow
           </button>
