@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, ArtifactListItem, Artifact, ArtifactUpdate } from "@/lib/api";
+import Badge from "@/components/ui/badge";
 
 // ── Type icons ──
 
@@ -67,9 +68,7 @@ function ArtifactCard({
 
       <div className="flex items-center gap-1.5 flex-wrap">
         {artifact.tags.slice(0, 3).map((tag) => (
-          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">
-            {tag}
-          </span>
+          <Badge key={tag} variant="accent">{tag}</Badge>
         ))}
         {artifact.tags.length > 3 && (
           <span className="text-[10px] text-muted-foreground">+{artifact.tags.length - 3}</span>

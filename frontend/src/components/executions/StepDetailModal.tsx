@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import type { ExecutionStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import MarkdownContent from "@/components/ui/markdown-content";
+import CopyButton from "@/components/ui/copy-button";
+import Badge from "@/components/ui/badge";
 import { executionStatus } from "@/lib/status";
 
 interface StepDetailModalProps {
@@ -21,26 +23,6 @@ function formatCost(usd: number): string {
   if (val === 0) return "$0.00";
   if (val < 0.01) return `$${val.toFixed(4)}`;
   return `$${val.toFixed(3)}`;
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-xs px-2.5 py-1.5 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-    >
-      {copied ? "Copied" : "Copy"}
-    </button>
-  );
 }
 
 type Tab = "output" | "input";
@@ -74,9 +56,9 @@ export default function StepDetailModal({ step, onClose }: StepDetailModalProps)
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/20">
           <div className="flex items-center gap-3">
             <h3 id="step-detail-title" className="text-sm font-semibold">{step.agent_name ?? step.node_id}</h3>
-            <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", config.bg, config.text)}>
+            <Badge pill className={cn(config.bg, config.text)}>
               {config.label}
-            </span>
+            </Badge>
           </div>
           <button onClick={onClose} aria-label="Close dialog" className="text-muted-foreground hover:text-foreground p-2.5 rounded transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">

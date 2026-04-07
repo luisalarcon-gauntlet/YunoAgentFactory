@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import type { AgentNodeData } from "./AgentNode";
+import SectionLabel from "@/components/ui/section-label";
 
 interface NodeConfigPanelProps {
   node: Node<AgentNodeData>;
@@ -53,9 +54,7 @@ export default function NodeConfigPanel({
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4 touch-pan-y">
         {/* Agent info */}
         <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            Agent
-          </label>
+          <SectionLabel>Agent</SectionLabel>
           <div className="mt-1 px-3 py-2 rounded-lg bg-muted/50 border border-border">
             <p className="text-sm font-medium">{nodeData.label}</p>
             {nodeData.role && (
@@ -66,9 +65,7 @@ export default function NodeConfigPanel({
 
         {/* Task instruction */}
         <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            Task Instruction
-          </label>
+          <SectionLabel>Task Instruction</SectionLabel>
           <textarea
             value={nodeData.config?.task_instruction ?? ""}
             onChange={(e) => handleInstructionChange(e.target.value)}
@@ -81,9 +78,7 @@ export default function NodeConfigPanel({
         {/* Outgoing edges */}
         {outgoingEdges.length > 0 && (
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Outgoing Conditions
-            </label>
+            <SectionLabel>Outgoing Conditions</SectionLabel>
             <div className="mt-1 space-y-2">
               {outgoingEdges.map((edge) => (
                 <div key={edge.id} className="flex items-center gap-2">
@@ -115,9 +110,7 @@ export default function NodeConfigPanel({
         {/* Incoming edges */}
         {incomingEdges.length > 0 && (
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Incoming ({incomingEdges.length})
-            </label>
+            <SectionLabel>Incoming ({incomingEdges.length})</SectionLabel>
             <div className="mt-1 space-y-1">
               {incomingEdges.map((edge) => (
                 <div key={edge.id} className="text-xs text-muted-foreground px-2 py-1 bg-muted/30 rounded">

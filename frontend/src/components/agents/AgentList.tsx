@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Agent } from "@/lib/api";
 import AgentCard from "./AgentCard";
+import Skeleton from "@/components/ui/skeleton";
+import EmptyState from "@/components/ui/empty-state";
 
 interface AgentListProps {
   onEdit: (agent: Agent) => void;
@@ -24,7 +26,7 @@ export default function AgentList({ onEdit }: AgentListProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="rounded-xl border border-border bg-card p-4 animate-pulse h-32" />
+          <Skeleton key={i} className="rounded-xl border border-border h-32" />
         ))}
       </div>
     );
@@ -40,9 +42,7 @@ export default function AgentList({ onEdit }: AgentListProps) {
 
   if (!agents?.length) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p>No agents yet. Create your first agent to get started.</p>
-      </div>
+      <EmptyState title="No agents yet. Create your first agent to get started." />
     );
   }
 

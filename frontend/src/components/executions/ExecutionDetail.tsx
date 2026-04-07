@@ -7,6 +7,9 @@ import StepDetailModal from "./StepDetailModal";
 import { cn } from "@/lib/utils";
 import { useMonitorStore } from "@/stores/monitor-store";
 import MarkdownContent from "@/components/ui/markdown-content";
+import Badge from "@/components/ui/badge";
+import Skeleton from "@/components/ui/skeleton";
+import EmptyState from "@/components/ui/empty-state";
 import { executionStatus, sourceBadge, eventTypeColor, eventDotColor } from "@/lib/status";
 
 interface ExecutionDetailProps {
@@ -19,9 +22,7 @@ type Tab = "steps" | "conversation" | "events";
 function EventTimeline({ events }: { events: AgentEvent[] }) {
   if (events.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground text-sm">
-        No events recorded yet.
-      </div>
+      <EmptyState title="No events recorded yet." />
     );
   }
 
@@ -95,9 +96,7 @@ function ConversationView({ steps }: { steps: ExecutionStep[] }) {
 
   if (steps.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground text-sm">
-        No conversation yet.
-      </div>
+      <EmptyState title="No conversation yet." />
     );
   }
 
@@ -344,15 +343,15 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             <h3 className="text-sm font-semibold truncate">
               {execution.workflow_name ?? "Execution"}
             </h3>
-            <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", badge.bg, badge.text)}>
+            <Badge pill className={cn(badge.bg, badge.text)}>
               {execution.status}
-            </span>
+            </Badge>
             {execution.source && (() => {
               const sb = sourceBadge[execution.source] ?? sourceBadge.web;
               return (
-                <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", sb.bg, sb.text)}>
+                <Badge pill className={cn(sb.bg, sb.text)}>
                   {sb.label}
-                </span>
+                </Badge>
               );
             })()}
             {isLive && (
@@ -501,7 +500,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             {stepsLoading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 rounded-lg bg-muted/30 animate-pulse" />
+                  <Skeleton key={i} className="h-16" />
                 ))}
               </div>
             ) : (
@@ -522,7 +521,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           eventsLoading ? (
             <div id="exec-tab-events" role="tabpanel" className="px-4 py-3 space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-muted/30 animate-pulse" />
+                <Skeleton key={i} className="h-12" />
               ))}
             </div>
           ) : (

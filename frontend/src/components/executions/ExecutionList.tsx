@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Execution } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { executionStatus, sourceBadge } from "@/lib/status";
+import Badge from "@/components/ui/badge";
+import Skeleton from "@/components/ui/skeleton";
+import EmptyState from "@/components/ui/empty-state";
 
 interface ExecutionListProps {
   selectedId?: string;
@@ -38,7 +41,7 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
     return (
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-16 rounded-lg bg-muted/30 animate-pulse" />
+          <Skeleton key={i} className="h-16" />
         ))}
       </div>
     );
@@ -54,13 +57,15 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
 
   if (!executions?.length) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mx-auto mb-2 opacity-50">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-        </svg>
-        <p className="text-sm">No executions yet.</p>
-        <p className="text-xs mt-1">Run a workflow to see results here.</p>
-      </div>
+      <EmptyState
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+          </svg>
+        }
+        title="No executions yet."
+        description="Run a workflow to see results here."
+      />
     );
   }
 
@@ -106,9 +111,9 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
               <span className="text-sm font-medium truncate">
                 {exec.workflow_name ?? "Workflow"}
               </span>
-              <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0", badge.bg, badge.text)}>
+              <Badge pill className={cn(badge.bg, badge.text, "shrink-0")}>
                 {exec.status}
-              </span>
+              </Badge>
             </div>
             <div className="flex items-center justify-between mt-1">
               <span className="text-[10px] text-muted-foreground">
@@ -122,9 +127,9 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
               {exec.source && (() => {
                 const sb = sourceBadge[exec.source] ?? sourceBadge.web!;
                 return (
-                  <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", sb.bg, sb.text)}>
+                  <Badge pill className={cn(sb.bg, sb.text)}>
                     {sb.label}
-                  </span>
+                  </Badge>
                 );
               })()}
               <span className="text-[10px] text-muted-foreground">

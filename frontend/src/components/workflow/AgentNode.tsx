@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { executionStatus, agentStatus } from "@/lib/status";
+import Badge from "@/components/ui/badge";
 
 export interface AgentNodeData {
   label: string;
@@ -76,12 +77,9 @@ function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
               text: "text-secondary-foreground",
             };
             return (
-              <span
-                key={ch}
-                className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", icon.bg, icon.text)}
-              >
+              <Badge key={ch} className={cn(icon.bg, icon.text)}>
                 {icon.label}
-              </span>
+              </Badge>
             );
           })}
         </div>
@@ -90,9 +88,9 @@ function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
       {/* Model badge */}
       {data.model && (
         <div className="mt-2">
-          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+          <Badge className="bg-muted text-muted-foreground">
             {data.model.split("-").slice(0, 2).join("-")}
-          </span>
+          </Badge>
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type ChatMessage, type SuggestedWorkflow } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import Badge from "@/components/ui/badge";
 
 const CONVERSATION_STARTERS = [
   "What can this platform do?",
@@ -29,12 +30,7 @@ function SuggestionCard({
       </div>
       <div className="flex flex-wrap gap-1">
         {workflow.agents.map((agent) => (
-          <span
-            key={agent}
-            className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground"
-          >
-            {agent}
-          </span>
+          <Badge key={agent} variant="secondary">{agent}</Badge>
         ))}
       </div>
       <div className="flex gap-2 pt-1">

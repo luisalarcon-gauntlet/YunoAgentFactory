@@ -3,6 +3,9 @@ import type { ExecutionStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useMonitorStore } from "@/stores/monitor-store";
 import MarkdownContent from "@/components/ui/markdown-content";
+import CopyButton from "@/components/ui/copy-button";
+import Badge from "@/components/ui/badge";
+import EmptyState from "@/components/ui/empty-state";
 import { executionStatus } from "@/lib/status";
 
 interface StepTimelineProps {
@@ -24,27 +27,6 @@ function formatCost(usd: number): string {
   if (val === 0) return "$0";
   if (val < 0.01) return `$${val.toFixed(4)}`;
   return `$${val.toFixed(3)}`;
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-xs px-2.5 py-1.5 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-    >
-      {copied ? "Copied" : "Copy"}
-    </button>
-  );
 }
 
 /** Ticking elapsed timer for running steps. */
@@ -87,11 +69,7 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
 
   if (steps.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground text-sm">
-        No execution steps yet.
-      </div>
-    );
+    return <EmptyState title="No execution steps yet." />;
   }
 
   const toggleExpand = (stepId: string, e: React.MouseEvent) => {
@@ -149,9 +127,9 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                   <span className="text-sm font-medium">
                     {step.agent_name ?? step.node_id}
                   </span>
-                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", config.bg, config.text)}>
+                  <Badge pill className={cn(config.bg, config.text)}>
                     {config.label}
-                  </span>
+                  </Badge>
                 </div>
                 {step.started_at && (
                   <span className="text-[10px] text-muted-foreground">

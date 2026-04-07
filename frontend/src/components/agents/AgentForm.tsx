@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Agent, type AgentCreate } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import SectionLabel from "@/components/ui/section-label";
 
 interface AgentFormProps {
   agent?: Agent | null;
@@ -30,9 +31,7 @@ function TagInput({
 }) {
   return (
     <div>
-      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-        {label}
-      </label>
+      <SectionLabel>{label}</SectionLabel>
       <div className="flex flex-wrap gap-2 mt-1.5">
         {options.map((opt) => {
           const isActive = selected.includes(opt);
@@ -166,9 +165,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
         <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
           {/* Name */}
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Name *
-            </label>
+            <SectionLabel>Name *</SectionLabel>
             <input
               type="text"
               required
@@ -181,9 +178,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
 
           {/* Role */}
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Role *
-            </label>
+            <SectionLabel>Role *</SectionLabel>
             <input
               type="text"
               required
@@ -196,9 +191,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
 
           {/* System Prompt */}
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              System Prompt *
-            </label>
+            <SectionLabel>System Prompt *</SectionLabel>
             <textarea
               required
               value={systemPrompt}
@@ -211,9 +204,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
 
           {/* Model */}
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Model
-            </label>
+            <SectionLabel>Model</SectionLabel>
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
@@ -234,9 +225,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
           {/* Memory */}
           <div className="border border-border rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                Memory
-              </label>
+              <SectionLabel>Memory</SectionLabel>
               <button
                 type="button"
                 role="switch"
@@ -261,9 +250,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
 
           {/* Guardrails */}
           <div className="border border-border rounded-lg p-3 space-y-2">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Guardrails
-            </label>
+            <SectionLabel>Guardrails</SectionLabel>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-muted-foreground">Max Tokens</label>

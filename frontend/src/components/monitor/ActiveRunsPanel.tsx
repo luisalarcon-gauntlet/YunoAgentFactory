@@ -1,5 +1,6 @@
 import { useMonitorStore } from "@/stores/monitor-store";
 import { useEffect, useRef } from "react";
+import Badge from "@/components/ui/badge";
 
 interface ActiveExecution {
   execution_id: string;
@@ -88,9 +89,7 @@ export default function ActiveRunsPanel({ executions }: Props) {
                 {exec.workflow_name || exec.execution_id.slice(0, 8)}
               </span>
               {exec.agent_name && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                  {exec.agent_name}
-                </span>
+                <Badge variant="primary">{exec.agent_name}</Badge>
               )}
             </div>
             <span className="text-[10px] text-muted-foreground">

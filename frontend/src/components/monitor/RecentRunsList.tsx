@@ -2,6 +2,8 @@ import type { Execution } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { executionStatus } from "@/lib/status";
+import Badge from "@/components/ui/badge";
+import EmptyState from "@/components/ui/empty-state";
 
 interface Props {
   runs: Execution[];
@@ -33,11 +35,7 @@ export default function RecentRunsList({ runs }: Props) {
   const navigate = useNavigate();
 
   if (runs.length === 0) {
-    return (
-      <div className="text-center py-6 text-muted-foreground text-xs">
-        No runs yet. Execute a workflow to see results here.
-      </div>
-    );
+    return <EmptyState title="No runs yet." description="Execute a workflow to see results here." />;
   }
 
   return (
@@ -51,15 +49,9 @@ export default function RecentRunsList({ runs }: Props) {
             className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3 px-3 py-2 rounded-lg border border-border bg-card/30 hover:bg-card/60 cursor-pointer transition-colors"
           >
             {/* Status badge */}
-            <span
-              className={cn(
-                "text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase shrink-0",
-                config.bg,
-                config.text
-              )}
-            >
+            <Badge className={cn(config.bg, config.text, "uppercase shrink-0 font-semibold")}>
               {config.label}
-            </span>
+            </Badge>
 
             {/* Workflow name */}
             <span className="text-xs font-medium flex-1 truncate min-w-0">
@@ -67,9 +59,9 @@ export default function RecentRunsList({ runs }: Props) {
             </span>
 
             {/* Source */}
-            <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted/30 hidden sm:inline">
+            <Badge className="bg-muted/30 text-muted-foreground hidden sm:inline-flex">
               {run.source}
-            </span>
+            </Badge>
 
             {/* Duration */}
             <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0">
