@@ -48,7 +48,7 @@ export default function AgentStatusGrid() {
             className="px-3 py-2 rounded-lg border border-border bg-card/50"
           >
             <div className="flex items-center gap-2">
-              <div className={cn("w-2 h-2 rounded-full shrink-0", config.dot)} />
+              <div className={cn("w-2 h-2 rounded-full shrink-0", config.dot)} aria-hidden="true" />
               <span className="text-xs font-medium truncate">{agent.name}</span>
             </div>
             <div className="flex items-center justify-between mt-1">

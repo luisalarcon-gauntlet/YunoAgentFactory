@@ -252,6 +252,7 @@ function WorkflowBuilderInner() {
             type="text"
             value={workflowName}
             onChange={(e) => setWorkflowName(e.target.value)}
+            aria-label="Workflow name"
             className="bg-transparent text-sm font-semibold border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-full sm:w-48 md:w-64"
             placeholder="Workflow name"
           />
@@ -259,6 +260,7 @@ function WorkflowBuilderInner() {
             type="text"
             value={workflowDesc}
             onChange={(e) => setWorkflowDesc(e.target.value)}
+            aria-label="Workflow description"
             className="bg-transparent text-xs text-muted-foreground border-none outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1 w-full sm:w-36 md:w-48 hidden sm:block"
             placeholder="Description (optional)"
           />

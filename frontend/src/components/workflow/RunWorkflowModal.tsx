@@ -49,8 +49,13 @@ export default function RunWorkflowModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-lg mx-4 p-6">
-        <h2 className="text-base font-semibold text-foreground mb-1">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="run-workflow-title"
+        className="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-lg mx-4 p-6"
+      >
+        <h2 id="run-workflow-title" className="text-base font-semibold text-foreground mb-1">
           Run Workflow
         </h2>
         <p className="text-xs text-muted-foreground mb-4">
@@ -62,6 +67,7 @@ export default function RunWorkflowModal({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          aria-label="Initial prompt for workflow"
           placeholder="Describe the task for the first agent..."
           rows={5}
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"

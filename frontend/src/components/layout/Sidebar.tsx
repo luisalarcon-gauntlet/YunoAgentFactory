@@ -45,7 +45,8 @@ export default function Sidebar() {
         </div>
         <button
           onClick={() => setMobileOpen(false)}
-          className="md:hidden text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+          aria-label="Close navigation"
+          className="md:hidden text-muted-foreground hover:text-foreground p-2 rounded transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -129,6 +130,8 @@ export default function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
+        aria-label="Open navigation"
+        aria-expanded={mobileOpen}
         className="md:hidden fixed top-3 left-3 z-40 p-2 rounded-md bg-card border border-border text-foreground hover:bg-accent transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -137,9 +140,9 @@ export default function Sidebar() {
       </button>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 border-r border-border bg-card flex-col">
+      <nav aria-label="Main navigation" className="hidden md:flex w-56 border-r border-border bg-card flex-col">
         {sidebarContent}
-      </aside>
+      </nav>
 
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
@@ -148,9 +151,9 @@ export default function Sidebar() {
             className="absolute inset-0 bg-black/60"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative w-64 max-w-[80vw] bg-card flex flex-col z-10">
+          <nav aria-label="Main navigation" className="relative w-64 max-w-[80vw] bg-card flex flex-col z-10">
             {sidebarContent}
-          </aside>
+          </nav>
         </div>
       )}
     </>

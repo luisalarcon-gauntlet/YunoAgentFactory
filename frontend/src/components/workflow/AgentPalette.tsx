@@ -55,8 +55,10 @@ export default function AgentPalette() {
                   "w-2 h-2 rounded-full shrink-0",
                   statusColors[agent.status] ?? "bg-zinc-500"
                 )}
+                aria-hidden="true"
               />
               <span className="text-xs font-medium truncate">{agent.name}</span>
+              <span className="sr-only">({agent.status})</span>
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5 truncate pl-4">
               {agent.role}

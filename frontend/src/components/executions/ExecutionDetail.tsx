@@ -357,7 +357,8 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={onClose}
-              className="md:hidden text-muted-foreground hover:text-foreground p-1 -ml-1 rounded transition-colors"
+              aria-label="Back to list"
+              className="md:hidden text-muted-foreground hover:text-foreground p-2 -ml-1 rounded transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -403,6 +404,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
             <button
               onClick={() => downloadReport(execution, steps)}
               className="text-muted-foreground hover:text-foreground p-1.5 rounded hover:bg-muted/50 transition-colors"
+              aria-label="Download report"
               title="Download report"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -412,7 +414,8 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           )}
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+            aria-label="Close details"
+            className="text-muted-foreground hover:text-foreground p-2 rounded transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -460,7 +463,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
 
       {/* Error */}
       {execution.error_message && (
-        <div className="mx-4 mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+        <div role="alert" className="mx-4 mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
           <p className="text-xs text-red-400">{execution.error_message}</p>
         </div>
       )}
@@ -469,8 +472,11 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
       {isLive && <LiveStreamPanel executionId={execution.id} />}
 
       {/* Tabs */}
-      <div className="flex gap-0 px-4 border-b border-border">
+      <div role="tablist" aria-label="Execution details" className="flex gap-0 px-4 border-b border-border">
         <button
+          role="tab"
+          aria-selected={activeTab === "steps"}
+          aria-controls="exec-tab-steps"
           onClick={() => setActiveTab("steps")}
           className={cn(
             "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
@@ -482,6 +488,9 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           Steps
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === "conversation"}
+          aria-controls="exec-tab-conversation"
           onClick={() => setActiveTab("conversation")}
           className={cn(
             "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
@@ -493,6 +502,9 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           Conversation
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === "events"}
+          aria-controls="exec-tab-events"
           onClick={() => setActiveTab("events")}
           className={cn(
             "px-3 py-2 text-xs font-medium border-b-2 transition-colors",
@@ -508,7 +520,7 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {activeTab === "steps" && (
-          <div className="px-4 py-3">
+          <div id="exec-tab-steps" role="tabpanel" className="px-4 py-3">
             {stepsLoading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
@@ -525,17 +537,21 @@ export default function ExecutionDetail({ execution, onClose }: ExecutionDetailP
           </div>
         )}
         {activeTab === "conversation" && (
-          <ConversationView steps={steps ?? []} />
+          <div id="exec-tab-conversation" role="tabpanel">
+            <ConversationView steps={steps ?? []} />
+          </div>
         )}
         {activeTab === "events" && (
           eventsLoading ? (
-            <div className="px-4 py-3 space-y-3">
+            <div id="exec-tab-events" role="tabpanel" className="px-4 py-3 space-y-3">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="h-12 rounded-lg bg-muted/30 animate-pulse" />
               ))}
             </div>
           ) : (
-            <EventTimeline events={events ?? []} />
+            <div id="exec-tab-events" role="tabpanel">
+              <EventTimeline events={events ?? []} />
+            </div>
           )
         )}
       </div>

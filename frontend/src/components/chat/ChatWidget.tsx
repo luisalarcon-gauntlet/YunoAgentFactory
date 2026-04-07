@@ -238,7 +238,8 @@ function ChatContent({
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          aria-label="Close chat"
+          className="p-2 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -320,12 +321,14 @@ function ChatContent({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Describe what you need..."
+            aria-label="Chat message"
             disabled={isPending}
             className="flex-1 bg-secondary text-foreground text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={!input.trim() || isPending}
+            aria-label="Send message"
             className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">

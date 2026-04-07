@@ -214,6 +214,8 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                 <div className="mt-2">
                   <button
                     onClick={(e) => toggleInput(step.id, e)}
+                    aria-expanded={isInputExpanded}
+                    aria-label="Toggle input"
                     className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={cn("w-3 h-3 transition-transform", isInputExpanded && "rotate-90")}>
@@ -242,6 +244,8 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                       <div className="flex justify-between items-center mb-1">
                         <button
                           onClick={(e) => toggleExpand(step.id, e)}
+                          aria-expanded={true}
+                          aria-label="Collapse output"
                           className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                         >
                           Show less
@@ -259,6 +263,8 @@ export default function StepTimeline({ steps, activeStepId, executionId, onStepC
                       {hasLongOutput && (
                         <button
                           onClick={(e) => toggleExpand(step.id, e)}
+                          aria-expanded={false}
+                          aria-label="Expand output"
                           className="text-[10px] text-primary hover:text-primary/80 mt-0.5 transition-colors"
                         >
                           Show more

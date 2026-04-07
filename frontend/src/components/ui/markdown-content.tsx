@@ -7,7 +7,7 @@ interface MarkdownContentProps {
 
 export default function MarkdownContent({ content, className = "" }: MarkdownContentProps) {
   return (
-    <div className={`prose prose-invert prose-sm max-w-none break-words ${className}`}>
+    <div className={`prose dark:prose-invert prose-sm max-w-none break-words ${className}`}>
       <ReactMarkdown
         components={{
           pre: ({ children }) => (

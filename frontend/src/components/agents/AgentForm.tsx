@@ -128,17 +128,33 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
     mutation.mutate();
   };
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[90vh] mx-4 md:mx-0 rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="agent-form-title"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg max-h-[90vh] mx-4 md:mx-0 rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold">
+          <h2 id="agent-form-title" className="text-sm font-semibold">
             {isEdit ? "Edit Agent" : "Create Agent"}
           </h2>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+            aria-label="Close dialog"
+            className="text-muted-foreground hover:text-foreground p-2 rounded transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -223,6 +239,9 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
               </label>
               <button
                 type="button"
+                role="switch"
+                aria-checked={memoryEnabled}
+                aria-label="Memory enabled"
                 onClick={() => setMemoryEnabled(!memoryEnabled)}
                 className={cn(
                   "w-8 h-4 rounded-full transition-colors relative",
@@ -270,7 +289,7 @@ export default function AgentForm({ agent, onClose }: AgentFormProps) {
 
           {/* Error */}
           {mutation.isError && (
-            <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+            <div role="alert" aria-live="assertive" className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
               {mutation.error.message}
             </div>
           )}

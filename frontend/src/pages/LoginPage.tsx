@@ -92,7 +92,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-500 text-center">{error}</p>
+              <p role="alert" aria-live="assertive" className="text-sm text-red-500 text-center">{error}</p>
             )}
 
             <button

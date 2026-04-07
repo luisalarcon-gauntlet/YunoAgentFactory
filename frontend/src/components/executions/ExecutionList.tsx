@@ -88,7 +88,10 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
         return (
           <div
             key={exec.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(exec)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(exec); } }}
             className={cn(
               "group px-3 py-2.5 rounded-lg border cursor-pointer transition-colors relative",
               isSelected
@@ -103,7 +106,8 @@ export default function ExecutionList({ selectedId, onSelect, onDeleted }: Execu
                   deleteMutation.mutate(exec.id);
                 }}
                 disabled={deleteMutation.isPending}
-                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
+                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
+                aria-label="Delete execution"
                 title="Delete execution"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">

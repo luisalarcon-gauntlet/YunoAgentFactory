@@ -53,10 +53,11 @@ function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
 
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", color)} />
+        <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", color)} aria-hidden="true" />
         <span className="font-semibold text-sm text-foreground truncate">
           {data.label}
         </span>
+        <span className="sr-only">Status: {status}</span>
       </div>
 
       {/* Role */}

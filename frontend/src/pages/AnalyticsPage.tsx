@@ -91,7 +91,7 @@ function ExecutionsChart() {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <h3 className="text-sm font-medium text-foreground mb-4">Executions Over Time (14 days)</h3>
-      <div className="flex items-end gap-1.5 h-48">
+      <div role="img" aria-label={`Bar chart showing executions over ${data.length} days. Total: ${data.reduce((s, d) => s + d.total, 0)} executions, ${data.reduce((s, d) => s + d.succeeded, 0)} succeeded, ${data.reduce((s, d) => s + d.failed, 0)} failed.`} className="flex items-end gap-1.5 h-48">
         {data.map((day) => {
           const failedHeight = (day.failed / maxTotal) * 100;
           const succeededHeight = (day.succeeded / maxTotal) * 100;
@@ -167,11 +167,11 @@ function ErrorTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground text-xs">
-              <th className="px-4 py-2 font-medium">Workflow</th>
-              <th className="px-4 py-2 font-medium">Agent</th>
-              <th className="px-4 py-2 font-medium">Error</th>
-              <th className="px-4 py-2 font-medium text-right">Count</th>
-              <th className="px-4 py-2 font-medium">Last Seen</th>
+              <th scope="col" className="px-4 py-2 font-medium">Workflow</th>
+              <th scope="col" className="px-4 py-2 font-medium">Agent</th>
+              <th scope="col" className="px-4 py-2 font-medium">Error</th>
+              <th scope="col" className="px-4 py-2 font-medium text-right">Count</th>
+              <th scope="col" className="px-4 py-2 font-medium">Last Seen</th>
             </tr>
           </thead>
           <tbody>
@@ -260,18 +260,26 @@ function WorkflowPerformanceTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground text-xs">
-              <th className="px-4 py-2 font-medium">Workflow</th>
-              <th className="px-4 py-2 font-medium cursor-pointer hover:text-foreground" onClick={() => handleSort("total_runs")}>
-                Runs{sortIcon("total_runs")}
+              <th scope="col" className="px-4 py-2 font-medium">Workflow</th>
+              <th scope="col" className="px-4 py-2 font-medium">
+                <button type="button" onClick={() => handleSort("total_runs")} aria-label={`Sort by runs${sortBy === "total_runs" ? (sortDesc ? ", descending" : ", ascending") : ""}`} className="hover:text-foreground transition-colors">
+                  Runs{sortIcon("total_runs")}
+                </button>
               </th>
-              <th className="px-4 py-2 font-medium cursor-pointer hover:text-foreground" onClick={() => handleSort("success_rate")}>
-                Success Rate{sortIcon("success_rate")}
+              <th scope="col" className="px-4 py-2 font-medium">
+                <button type="button" onClick={() => handleSort("success_rate")} aria-label={`Sort by success rate${sortBy === "success_rate" ? (sortDesc ? ", descending" : ", ascending") : ""}`} className="hover:text-foreground transition-colors">
+                  Success Rate{sortIcon("success_rate")}
+                </button>
               </th>
-              <th className="px-4 py-2 font-medium cursor-pointer hover:text-foreground" onClick={() => handleSort("avg_duration_seconds")}>
-                Avg Duration{sortIcon("avg_duration_seconds")}
+              <th scope="col" className="px-4 py-2 font-medium">
+                <button type="button" onClick={() => handleSort("avg_duration_seconds")} aria-label={`Sort by average duration${sortBy === "avg_duration_seconds" ? (sortDesc ? ", descending" : ", ascending") : ""}`} className="hover:text-foreground transition-colors">
+                  Avg Duration{sortIcon("avg_duration_seconds")}
+                </button>
               </th>
-              <th className="px-4 py-2 font-medium cursor-pointer hover:text-foreground" onClick={() => handleSort("last_run")}>
-                Last Run{sortIcon("last_run")}
+              <th scope="col" className="px-4 py-2 font-medium">
+                <button type="button" onClick={() => handleSort("last_run")} aria-label={`Sort by last run${sortBy === "last_run" ? (sortDesc ? ", descending" : ", ascending") : ""}`} className="hover:text-foreground transition-colors">
+                  Last Run{sortIcon("last_run")}
+                </button>
               </th>
             </tr>
           </thead>

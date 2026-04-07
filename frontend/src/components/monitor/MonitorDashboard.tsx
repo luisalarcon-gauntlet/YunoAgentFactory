@@ -55,6 +55,7 @@ export default function MonitorDashboard() {
               "w-1.5 h-1.5 rounded-full",
               isConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"
             )}
+            aria-hidden="true"
           />
           {isConnected ? "Live" : "Disconnected"}
         </span>
